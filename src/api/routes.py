@@ -2,13 +2,15 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User
+from api.models import db, User, SteamAccount
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
-from flask_jwt_extended import create_access_token,jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
 from flask import redirect
+import os
+from flask import session
 
 api = Blueprint('api', __name__)
 
@@ -36,7 +38,6 @@ def create_user():
     if existing_user:
         return jsonify({"error": "User whith this email already exist"}), 400
 
-
     new_user = User(
         email=email,
         nickname=nickname,
@@ -51,9 +52,8 @@ def create_user():
     return jsonify({"msg": "User created succesfully"}), 201
 
 
-
 @api.route("/friends/<int:friend_id>", methods=["POST"])
-@jwt_required() # vigilante, sin pulsera no entras
+@jwt_required()  # vigilante, sin pulsera no entras
 def add_friend(friend_id):
 
     user_id = get_jwt_identity()
@@ -164,17 +164,125 @@ def login():
     password = data.get('password')
 
     if not email or not password:
-            return jsonify({"error": "email and password are required"}), 400
-    
+        return jsonify({"error": "email and password are required"}), 400
+
     existing_user = db.session.execute(db.select(User).where(
-            User.email == email)).scalar_one_or_none()
+        User.email == email)).scalar_one_or_none()
     if existing_user is None:
-         return jsonify({"error": "invalid email or password"}), 401
+        return jsonify({"error": "invalid email or password"}), 401
 
     if existing_user.check_password(password):
-         access_token = create_access_token(identity=str(existing_user.id))
-         return jsonify({"msg": "logeado correctamente", "token": access_token}), 200
+        access_token = create_access_token(identity=str(existing_user.id))
+        return jsonify({"msg": "logeado correctamente", "token": access_token}), 200
     else:
-         return jsonify({"msg": "invalid email or password"}), 401
+        return jsonify({"msg": "invalid email or password"}), 401
 
 
+@api.route("/steam/login", methods=["GET"])
+@jwt_required()
+def steam_login():
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    session["steam_link_user_id"] = user_id
+
+    return_url = os.getenv('STEAM_RETURN_URL')
+
+    params = {
+        "openid.ns": "http://specs.openid.net/auth/2.0",
+        "openid.mode": "checkid_setup",
+        "openid.return_to": return_url,
+        "openid.realm": return_url.rsplit("/api", 1)[0] + "/",
+        "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
+        "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select"
+    }
+
+    steam_url = "https://steamcommunity.com/openid/login?"
+
+    steam_login_url = steam_url + urlencode(params)
+
+    return jsonify({
+        "steam_login_url": steam_login_url
+    }), 200
+
+
+
+
+
+@api.route("/steam/callback", methods=["GET"])
+def steam_callback():
+
+    user_id = session.get("steam_link_user_id")
+
+    if not user_id:
+        return jsonify({
+            "error": "Steam linking session not found"
+        }), 400
+
+    steam_data = request.args.to_dict()
+
+    verification_data = steam_data.copy()
+    verification_data["openid.mode"] = "check_authentication"
+
+    response = requests.post(
+        "https://steamcommunity.com/openid/login",
+        data=verification_data
+    )
+
+    if response.status_code != 200:
+        return jsonify({
+            "error": "Could not verify Steam authentication"
+        }), 400
+
+    if "is_valid:true" not in response.text:
+        return jsonify({
+            "error": "Invalid Steam authentication"
+        }), 400
+
+    claimed_id = steam_data.get("openid.claimed_id")
+
+    if not claimed_id:
+        return jsonify({
+            "error": "Steam ID not received"
+        }), 400
+
+    steam_id = claimed_id.rsplit("/", 1)[-1]
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    existing_steam_account = db.session.execute(
+        db.select(SteamAccount).where(
+            SteamAccount.steam_id == steam_id
+        )
+    ).scalar_one_or_none()
+
+    if existing_steam_account:
+        return jsonify({
+            "error": "This Steam account is already linked"
+        }), 400
+
+    steam_account = SteamAccount(
+        steam_id=steam_id,
+        user_id=user.id
+    )
+
+    db.session.add(steam_account)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Steam account linked successfully",
+        "user_id": user.id,
+        "steam_id": steam_account.steam_id
+    }), 201
