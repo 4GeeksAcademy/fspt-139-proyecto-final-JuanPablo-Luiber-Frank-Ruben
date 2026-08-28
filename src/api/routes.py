@@ -6,6 +6,9 @@ from api.models import db, User
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token,jwt_required, get_jwt_identity
+import requests
+from urllib.parse import urlencode
+from flask import redirect
 
 api = Blueprint('api', __name__)
 
@@ -17,16 +20,15 @@ CORS(api)
 def create_user():
 
     data = request.get_json()
-    steam_id = data.get("steam_id")
     email = data.get("email")
     password = data.get("password")
     nickname = data.get("nickname")
     avatar_url = data.get("avatar_url")
     profile_url = data.get("profile_url")
 
-    if not steam_id or not email or not password or not nickname:
+    if not email or not password or not nickname:
         return jsonify({
-            "error": "steam_id, email, password and nickname are required"
+            "error": "email, password and nickname are required"
         }), 400
 
     existing_user = db.session.execute(db.select(User).where(
@@ -36,7 +38,6 @@ def create_user():
 
 
     new_user = User(
-        steam_id=steam_id,
         email=email,
         nickname=nickname,
         avatar_url=avatar_url,
@@ -175,3 +176,5 @@ def login():
          return jsonify({"msg": "logeado correctamente", "token": access_token}), 200
     else:
          return jsonify({"msg": "invalid email or password"}), 401
+
+
