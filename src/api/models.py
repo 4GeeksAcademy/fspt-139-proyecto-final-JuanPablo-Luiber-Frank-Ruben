@@ -39,6 +39,7 @@ class User(db.Model):
         secondaryjoin="User.id == friends.c.user_from_id",
         back_populates="friendships"
     )
+    games: Mapped[List["UserGame"]] = relationship("UserGame", back_populates="user")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password).decode('utf-8')
@@ -58,3 +59,43 @@ class User(db.Model):
             "friendships": [user.id for user in self.friendships],
             "friends_of": [user.id for user in self.friends_of]
         }
+
+class Game(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    appid: Mapped[int] = mapped_column(unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    img_icon_url: Mapped[str] = mapped_column(String(500), nullable=True)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "appid": self.appid,
+            "name": self.name,
+            "img_icon_url": self.img_icon_url
+    }
+
+class UserGame(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    game_id: Mapped[int] = mapped_column(ForeignKey("game.id"), nullable=False)
+    playtime_forever: Mapped[int] = mapped_column(nullable=False, default=0)
+    playtime_2weeks: Mapped[int] = mapped_column(nullable=True)
+    playtime_windows_forever: Mapped[int] = mapped_column(nullable=True, default=0)
+    playtime_mac_forever: Mapped[int] = mapped_column(nullable=True, default=0)
+    playtime_linux_forever: Mapped[int] = mapped_column(nullable=True, default=0)
+    playtime_deck_forever: Mapped[int] = mapped_column(nullable=True, default=0)
+    rtime_last_played: Mapped[int] = mapped_column(nullable=True)
+
+    user: Mapped["User"] = relationship("User", back_populates="games")
+    game: Mapped["Game"] = relationship("Game")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "playtime_forever": self.playtime_forever,
+            "playtime_2weeks": self.playtime_2weeks,
+            "rtime_last_played": self.rtime_last_played,
+            "game": self.game.serialize()
+    }
+    
