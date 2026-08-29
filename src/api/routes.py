@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User
+from api.models import db, User, Game, UserGame
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token,jwt_required, get_jwt_identity
@@ -175,3 +175,79 @@ def login():
          return jsonify({"msg": "logeado correctamente", "token": access_token}), 200
     else:
          return jsonify({"msg": "invalid email or password"}), 401
+
+
+@api.route("/users/<int:user_id>/games", methods=["POST"])
+@jwt_required()
+def sync_user_games(user_id):
+
+    current_user_id = get_jwt_identity()
+
+    if str(current_user_id) != str(user_id):
+        return jsonify({"error": "You cannot modify another user's games"}), 403
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.get_json()
+    games_list = data.get("games")
+
+    if not games_list:
+        return jsonify({"error": "games list is required"}), 400
+
+    for game_data in games_list:
+        appid = game_data.get("appid")
+        name = game_data.get("name")
+
+        if not appid or not name:
+            continue
+
+        game = db.session.execute(db.select(Game).where(
+            Game.appid == appid)).scalar_one_or_none()
+
+        if not game:
+            game = Game(
+                appid=appid,
+                name=name,
+                img_icon_url=game_data.get("img_icon_url")
+            )
+            db.session.add(game)
+            db.session.flush()
+
+        user_game = db.session.execute(db.select(UserGame).where(
+            UserGame.user_id == user_id,
+            UserGame.game_id == game.id
+        )).scalar_one_or_none()
+
+        if not user_game:
+            user_game = UserGame(user_id=user_id, game_id=game.id)
+            db.session.add(user_game)
+
+        user_game.playtime_forever = game_data.get("playtime_forever", 0)
+        user_game.playtime_2weeks = game_data.get("playtime_2weeks")
+        user_game.rtime_last_played = game_data.get("rtime_last_played")
+
+    db.session.commit()
+
+    return jsonify({"msg": "Games synced successfully"}), 201    
+
+@api.route("/users/<int:user_id>/games", methods=["GET"])
+@jwt_required()
+def get_user_games(user_id):
+
+    current_user_id = get_jwt_identity()
+
+    if str(current_user_id) != str(user_id):
+        return jsonify({"error": "You cannot view another user's games"}), 403
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user_games = db.session.execute(db.select(UserGame).where(
+        UserGame.user_id == user_id)).scalars().all()
+
+    return jsonify({
+        "games": [user_game.serialize() for user_game in user_games]
+    }), 200

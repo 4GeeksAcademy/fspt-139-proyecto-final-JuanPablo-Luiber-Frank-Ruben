@@ -98,4 +98,3 @@ class UserGame(db.Model):
             "rtime_last_played": self.rtime_last_played,
             "game": self.game.serialize()
     }
-    
