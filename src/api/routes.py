@@ -281,8 +281,83 @@ def steam_callback():
     db.session.add(steam_account)
     db.session.commit()
 
+    session.pop("steam_link_user_id", None)
+
     return jsonify({
         "message": "Steam account linked successfully",
         "user_id": user.id,
         "steam_id": steam_account.steam_id
     }), 201
+
+
+
+@api.route("/steam/account", methods=["GET"])
+@jwt_required()
+def get_steam_account():
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    steam_account = user.steam_account
+
+    if not steam_account:
+        return jsonify({
+            "linked": False,
+            "steam_account": None
+        }), 200
+
+    return jsonify({
+        "linked": True,
+        "steam_account": steam_account.serialize()
+    }), 200
+
+
+
+@api.route("/steam/profile", methods=["GET"])
+@jwt_required()
+def get_steam_profile():
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    steam_account = user.steam_account
+
+    if not steam_account:
+        return jsonify({
+            "error": "Steam account not linked"
+        }), 404
+
+    steam_id = steam_account.steam_id
+
+    api_key = os.getenv("API_KEY")
+
+    response = requests.get(
+        
+        f"https://api.steamapis.com/v2/steam/users/{steam_id}",
+
+        headers={
+            "x-api-key": api_key
+        }
+    )
+
+    if response.status_code != 200:
+        return jsonify({
+            "error": "Could not get Steam profile",
+            "details": response.json()
+        }), response.status_code
+
+    data = response.json()
+
+    return jsonify(data), 200
