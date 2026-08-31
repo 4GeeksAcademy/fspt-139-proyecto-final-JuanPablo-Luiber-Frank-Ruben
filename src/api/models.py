@@ -79,12 +79,6 @@ class UserGame(db.Model):
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
     game_id: Mapped[int] = mapped_column(ForeignKey("game.id"), nullable=False)
     playtime_forever: Mapped[int] = mapped_column(nullable=False, default=0)
-    playtime_2weeks: Mapped[int] = mapped_column(nullable=True)
-    playtime_windows_forever: Mapped[int] = mapped_column(nullable=True, default=0)
-    playtime_mac_forever: Mapped[int] = mapped_column(nullable=True, default=0)
-    playtime_linux_forever: Mapped[int] = mapped_column(nullable=True, default=0)
-    playtime_deck_forever: Mapped[int] = mapped_column(nullable=True, default=0)
-    rtime_last_played: Mapped[int] = mapped_column(nullable=True)
 
     user: Mapped["User"] = relationship("User", back_populates="games")
     game: Mapped["Game"] = relationship("Game")
@@ -94,7 +88,5 @@ class UserGame(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "playtime_forever": self.playtime_forever,
-            "playtime_2weeks": self.playtime_2weeks,
-            "rtime_last_played": self.rtime_last_played,
             "game": self.game.serialize()
-    }
+        }

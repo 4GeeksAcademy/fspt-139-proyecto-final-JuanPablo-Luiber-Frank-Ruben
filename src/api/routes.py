@@ -225,8 +225,6 @@ def sync_user_games(user_id):
             db.session.add(user_game)
 
         user_game.playtime_forever = game_data.get("playtime_forever", 0)
-        user_game.playtime_2weeks = game_data.get("playtime_2weeks")
-        user_game.rtime_last_played = game_data.get("rtime_last_played")
 
     db.session.commit()
 
