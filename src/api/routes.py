@@ -4,7 +4,6 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint
 from api.models import db, User, SteamAccount
 from api.utils import generate_sitemap, APIException
-from flask_cors import CORS
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
@@ -13,9 +12,6 @@ import os
 from flask import session
 
 api = Blueprint('api', __name__)
-
-# Allow CORS requests to this API
-CORS(api)
 
 
 @api.route("/users", methods=["POST"])
@@ -213,9 +209,6 @@ def steam_login():
     }), 200
 
 
-
-
-
 @api.route("/steam/callback", methods=["GET"])
 def steam_callback():
 
@@ -283,12 +276,11 @@ def steam_callback():
 
     session.pop("steam_link_user_id", None)
 
-    return jsonify({
-        "message": "Steam account linked successfully",
-        "user_id": user.id,
-        "steam_id": steam_account.steam_id
-    }), 201
+    frontend_url = os.getenv("VITE_FRONTEND_URL")
 
+    return redirect(
+        f"{frontend_url}/profile?steam=connected"
+    )
 
 
 @api.route("/steam/account", methods=["GET"])
@@ -318,7 +310,6 @@ def get_steam_account():
     }), 200
 
 
-
 @api.route("/steam/profile", methods=["GET"])
 @jwt_required()
 def get_steam_profile():
@@ -344,7 +335,7 @@ def get_steam_profile():
     api_key = os.getenv("API_KEY")
 
     response = requests.get(
-        
+
         f"https://api.steamapis.com/v2/steam/users/{steam_id}",
 
         headers={
@@ -360,4 +351,8 @@ def get_steam_profile():
 
     data = response.json()
 
-    return jsonify(data), 200
+    return jsonify({
+        "linked": True,
+        "steam_account": steam_account.serialize(),
+        "steam_profile": data
+    }), 200

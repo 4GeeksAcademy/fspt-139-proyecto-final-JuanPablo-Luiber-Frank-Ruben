@@ -20,8 +20,8 @@ class User(db.Model):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(nullable=False)
     nickname: Mapped[str] = mapped_column(String(40), nullable=False)
-    avatar_url: Mapped[str] = mapped_column(String(500),nullable=False)
-    profile_url: Mapped[str] = mapped_column(String(500),nullable=False)
+    avatar_url: Mapped[str] = mapped_column(String(500),nullable=True)
+    profile_url: Mapped[str] = mapped_column(String(500),nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=datetime.now, nullable=False)
     steam_account: Mapped["SteamAccount"] = relationship("SteamAccount",back_populates="user", uselist=False)
     friendships: Mapped[List["User"]] = relationship(
