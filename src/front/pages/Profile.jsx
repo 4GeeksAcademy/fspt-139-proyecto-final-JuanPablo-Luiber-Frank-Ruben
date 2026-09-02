@@ -3,8 +3,48 @@ import { useState, useEffect } from "react";
 
 export const Profile = () => {
 
+    const [steamAccount, setSteamAccount] = useState(null);
     const [steamMessage, setSteamMessage] = useState("");
     const [steamError, setSteamError] = useState("");
+
+
+      useEffect(() => {
+
+        const getSteamProfile = async () => {
+
+            const token = localStorage.getItem("token");
+
+            if (!token) {
+                return;
+            }
+
+            try {
+
+                const response = await fetch(
+                    `${import.meta.env.VITE_BACKEND_URL}/api/steam/profile`,
+                    {
+                        method: "GET",
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (response.ok && data.linked) {
+                    setSteamAccount(data.steam_account);
+                }
+
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        getSteamProfile();
+
+    }, []);
+
 
 
     useEffect(() => {
@@ -73,13 +113,41 @@ export const Profile = () => {
     };
 
 
+    const hideSteamId = (steamId) => {
+
+        if (!steamId) {
+            return "";
+        }
+
+        return `********${steamId.slice(-4)}`;
+    };
+
+
 
     return (
 
         <div>
-            <button onClick={connectSteam}>
-                vincular Steam
-            </button>
+            {!steamAccount ? (
+
+                <button onClick={connectSteam}>
+                    🎮 Vincular Steam
+                </button>
+
+            ) : (
+
+                <div>
+
+                    <h3>✅ Steam conectada</h3>
+
+                    <p>
+                        Steam ID:{" "}
+                        {hideSteamId(
+                            steamAccount.steam_id
+                        )}
+                    </p>
+
+                </div>
+            )}
 
             {steamMessage && (
                 <p>
