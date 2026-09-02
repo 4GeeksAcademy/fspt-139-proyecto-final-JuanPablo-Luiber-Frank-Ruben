@@ -66,6 +66,7 @@ class Game(db.Model):
     appid: Mapped[int] = mapped_column(unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     img_icon_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    user_games: Mapped[List["UserGame"]] = relationship("UserGame", back_populates="game")
 
     def serialize(self):
         return {
@@ -97,7 +98,7 @@ class UserGame(db.Model):
     playtime_forever: Mapped[int] = mapped_column(nullable=False, default=0)
 
     user: Mapped["User"] = relationship("User", back_populates="games")
-    game: Mapped["Game"] = relationship("Game")
+    game: Mapped["Game"] = relationship("Game", back_populates="user_games")
 
     def serialize(self):
         return {
