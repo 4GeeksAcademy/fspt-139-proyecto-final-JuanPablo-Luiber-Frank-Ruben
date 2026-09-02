@@ -8,7 +8,7 @@ export const Profile = () => {
     const [steamError, setSteamError] = useState("");
 
 
-      useEffect(() => {
+    useEffect(() => {
 
         const getSteamProfile = async () => {
 
@@ -66,6 +66,9 @@ export const Profile = () => {
 
     }, []);
 
+    // ==========================================
+    // VINCULAR STEAM
+    // ==========================================
     const connectSteam = async () => {
 
         setSteamMessage("");
@@ -113,6 +116,71 @@ export const Profile = () => {
     };
 
 
+    // ==========================================
+    // DESVINCULAR STEAM
+    // ==========================================
+
+    const unlinkSteam = async () => {
+
+        setSteamMessage("");
+        setSteamError("");
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+
+            setSteamError(
+                "Debes iniciar sesión primero"
+            );
+
+            return;
+        }
+
+        try {
+
+            const response = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/steam/account`,
+                {
+                    method: "DELETE",
+
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+
+                setSteamError(
+                    data.error ||
+                    "No se pudo desvincular Steam"
+                );
+
+                return;
+            }
+
+            setSteamAccount(null);
+
+            setSteamMessage(
+                "Cuenta de Steam desvinculada correctamente"
+            );
+
+        } catch (error) {
+
+            console.error(error);
+
+            setSteamError(
+                "No se pudo conectar con el servidor"
+            );
+        }
+    };
+
+
+    // ==========================================
+    // OCULTAR STEAM ID
+    // ==========================================
     const hideSteamId = (steamId) => {
 
         if (!steamId) {
@@ -125,19 +193,34 @@ export const Profile = () => {
 
 
     return (
-
         <div>
+
+            <h1>Mi perfil</h1>
+
             {!steamAccount ? (
-
-                <button onClick={connectSteam}>
-                    🎮 Vincular Steam
-                </button>
-
-            ) : (
 
                 <div>
 
-                    <h3>✅ Steam conectada</h3>
+                    <h3>🎮 Steam</h3>
+
+                    <p>
+                        Tu cuenta de Steam no está vinculada.
+                    </p>
+
+                    <button onClick={connectSteam}>
+                        🎮 Vincular Steam
+                    </button>
+
+                </div>
+
+            ) : (
+
+
+                <div>
+
+                    <h3>
+                        ✅ Steam conectada
+                    </h3>
 
                     <p>
                         Steam ID:{" "}
@@ -146,24 +229,30 @@ export const Profile = () => {
                         )}
                     </p>
 
+                    <button onClick={unlinkSteam}>
+                        ❌ Desvincular Steam
+                    </button>
+
                 </div>
+
             )}
 
             {steamMessage && (
+
                 <p>
                     ✅ {steamMessage}
                 </p>
+
             )}
 
             {steamError && (
+
                 <p>
                     ❌ {steamError}
                 </p>
+
             )}
 
-
         </div>
-
     )
-
 }
