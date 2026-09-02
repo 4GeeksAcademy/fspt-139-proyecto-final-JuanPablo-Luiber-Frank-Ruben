@@ -310,6 +310,34 @@ def get_steam_account():
     }), 200
 
 
+@api.route("/steam/account", methods=["DELETE"])
+@jwt_required()
+def unlink_steam():
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    steam_account = user.steam_account
+
+    if not steam_account:
+        return jsonify({
+            "error": "Steam account not linked"
+        }), 404
+
+    db.session.delete(steam_account)
+    db.session.commit()
+
+    return jsonify({
+        "msg": "Steam account unlinked successfully"
+    }), 200
+
+
 @api.route("/steam/profile", methods=["GET"])
 @jwt_required()
 def get_steam_profile():
