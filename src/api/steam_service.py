@@ -23,10 +23,12 @@ def get_steam_games(steam_id):
 
     return data, None
 
+
 def map_steam_game(steam_game):
+    game = steam_game.get("game", {})
     return {
-        "appid": steam_game.get("id"),
-        "name": steam_game.get("name"),
-        "img_icon_url": steam_game.get("icon"),
+        "appid": game.get("id"),
+        "name": game.get("name"),
+        "img_icon_url": game.get("icon"),
         "playtime_forever": steam_game.get("minutes", 0)
     }
