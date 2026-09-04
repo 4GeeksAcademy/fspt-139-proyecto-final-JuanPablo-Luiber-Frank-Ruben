@@ -4,6 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
 from api.models import db, User, Game, UserGame, SteamAccount
 from api.utils import generate_sitemap, APIException
+from api.steam_service import get_steam_games, map_steam_game
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
@@ -456,3 +457,60 @@ def get_steam_profile():
         "steam_account": steam_account.serialize(),
         "steam_profile": data
     }), 200
+
+@api.route("/steam/sync-games", methods=["POST"])
+@jwt_required()
+def sync_steam_games():
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if not user.steam_account:
+        return jsonify({"error": "Steam account not linked"}), 400
+
+    steam_id = user.steam_account.steam_id
+
+    data, error = get_steam_games(steam_id)
+
+    if error:
+        return jsonify({"error": error}), 502
+
+    steam_games = data.get("result", [])
+
+    for steam_game in steam_games:
+        game_data = map_steam_game(steam_game)
+        appid = game_data.get("appid")
+        name = game_data.get("name")
+
+        if not appid or not name:
+            continue
+
+        game = db.session.execute(db.select(Game).where(
+            Game.appid == appid)).scalar_one_or_none()
+
+        if not game:
+            game = Game(
+                appid=appid,
+                name=name,
+                img_icon_url=game_data.get("img_icon_url")
+            )
+            db.session.add(game)
+            db.session.flush()
+
+        user_game = db.session.execute(db.select(UserGame).where(
+            UserGame.user_id == user_id,
+            UserGame.game_id == game.id
+        )).scalar_one_or_none()
+
+        if not user_game:
+            user_game = UserGame(user_id=user_id, game_id=game.id)
+            db.session.add(user_game)
+
+        user_game.playtime_forever = game_data.get("playtime_forever", 0)
+
+    db.session.commit()
+
+    return jsonify({"msg": "Steam games synced successfully"}), 201
