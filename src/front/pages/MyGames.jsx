@@ -15,6 +15,12 @@ const FILTERS = [
 
 export const MyGames = () => {
     const { store } = useGlobalReducer();
-    const { favorites, toggleFavorite }= useFavorites(store.token);
-    const [ userGames, setUser]
+    const { favorites, toggleFavorite } = useFavorites(store.token);
+
+    const [ userGames, setUser ] = useState([]);
+    const [error, setError] = useState("");
+    const [ filter, setFilter ] = useState("all");
+    const [ search, setsearch ] = useState("");
+    
+
 }
