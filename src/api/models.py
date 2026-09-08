@@ -67,6 +67,8 @@ class Game(db.Model):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     img_icon_url: Mapped[str] = mapped_column(String(500), nullable=True)
     user_games: Mapped[List["UserGame"]] = relationship("UserGame", back_populates="game")
+    achievements: Mapped[List["Achievement"]] = relationship("Achievement", back_populates="game")
+
 
     def serialize(self):
         return {
@@ -75,9 +77,25 @@ class Game(db.Model):
             "name": self.name,
             "img_icon_url": self.img_icon_url
         }
-       
-        
 
+class Achievement(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    description: Mapped[str] = mapped_column(String(500), nullable=True)
+    image_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    game_id: Mapped[int] = mapped_column(ForeignKey("game.id"), nullable=False)
+    game: Mapped["Game"] = relationship("Game", back_populates="achievements")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "image_url": self.image_url,
+            "game_id": self.game_id
+        }
+    
+       
 class SteamAccount(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     steam_id: Mapped[str] = mapped_column(String(60), nullable=False, unique=True)
