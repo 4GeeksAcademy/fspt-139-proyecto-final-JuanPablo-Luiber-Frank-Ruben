@@ -22,7 +22,7 @@ export const Login = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error || "Something went wrong");
+                setError(data.error || data.msg || "Something went wrong");
                 return;
             }
 
@@ -30,7 +30,7 @@ export const Login = () => {
             sessionStorage.setItem("token", data.token);
 
 
-            navigate("/private");
+            navigate("/dashboard");
 
         } catch (err) {
             setError("Could not connect to the backend");
