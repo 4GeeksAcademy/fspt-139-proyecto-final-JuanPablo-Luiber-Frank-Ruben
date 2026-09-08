@@ -6,6 +6,8 @@ export const Profile = () => {
     const [steamAccount, setSteamAccount] = useState(null);
     const [steamMessage, setSteamMessage] = useState("");
     const [steamError, setSteamError] = useState("");
+    const [syncing, setSyncing] = useState(false);
+    const [games, setGames] = useState([]);
 
 
     useEffect(() => {
@@ -46,7 +48,6 @@ export const Profile = () => {
     }, []);
 
 
-
     useEffect(() => {
 
         const params = new URLSearchParams(window.location.search);
@@ -66,6 +67,7 @@ export const Profile = () => {
 
     }, []);
 
+
     // ==========================================
     // VINCULAR STEAM
     // ==========================================
@@ -81,10 +83,12 @@ export const Profile = () => {
             return;
         }
 
-        const url = `${import.meta.env.VITE_BACKEND_URL}/api/steam/login`
+        const url = `${import.meta.env.VITE_BACKEND_URL}/api/steam/login`;
 
         try {
-            const response = await fetch(url,
+
+            const response = await fetch(
+                url,
                 {
                     method: "GET",
                     headers: {
@@ -97,9 +101,11 @@ export const Profile = () => {
             const data = await response.json();
 
             if (!response.ok) {
+
                 setSteamError(
                     data.error || "No se pudo conectar con Steam"
                 );
+
                 return;
             }
 
@@ -119,7 +125,6 @@ export const Profile = () => {
     // ==========================================
     // DESVINCULAR STEAM
     // ==========================================
-
     const unlinkSteam = async () => {
 
         setSteamMessage("");
@@ -162,6 +167,7 @@ export const Profile = () => {
             }
 
             setSteamAccount(null);
+            setGames([]);
 
             setSteamMessage(
                 "Cuenta de Steam desvinculada correctamente"
@@ -179,6 +185,73 @@ export const Profile = () => {
 
 
     // ==========================================
+    // SINCRONIZAR STEAM
+    // ==========================================
+    const syncSteam = async () => {
+
+        setSteamMessage("");
+        setSteamError("");
+        setSyncing(true);
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+
+            setSteamError(
+                "Debes iniciar sesión primero"
+            );
+
+            setSyncing(false);
+            return;
+        }
+
+        try {
+
+            const response = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/steam/sync`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+
+                setSteamError(
+                    data.error ||
+                    "No se pudieron sincronizar los juegos"
+                );
+
+                return;
+            }
+
+            // Actualizar los juegos en la interfaz
+            setGames(data.games || []);
+
+            setSteamMessage(
+                "¡Juegos de Steam sincronizados correctamente!"
+            );
+
+        } catch (error) {
+
+            console.error(error);
+
+            setSteamError(
+                "No se pudo conectar con el servidor"
+            );
+
+        } finally {
+
+            setSyncing(false);
+        }
+    };
+
+
+    // ==========================================
     // OCULTAR STEAM ID
     // ==========================================
     const hideSteamId = (steamId) => {
@@ -189,7 +262,6 @@ export const Profile = () => {
 
         return `********${steamId.slice(-4)}`;
     };
-
 
 
     return (
@@ -215,7 +287,6 @@ export const Profile = () => {
 
             ) : (
 
-
                 <div>
 
                     <h3>
@@ -229,9 +300,59 @@ export const Profile = () => {
                         )}
                     </p>
 
-                    <button onClick={unlinkSteam}>
+                    {/* BOTÓN SINCRONIZAR */}
+                    <button
+                        onClick={syncSteam}
+                        disabled={syncing}
+                    >
+                        {syncing
+                            ? "⏳ Sincronizando..."
+                            : "🔄 Sincronizar Steam"
+                        }
+                    </button>
+
+                    {" "}
+
+                    <button
+                        onClick={unlinkSteam}
+                        disabled={syncing}
+                    >
                         ❌ Desvincular Steam
                     </button>
+
+                    {/* JUEGOS */}
+                    {games.length > 0 && (
+
+                        <div>
+
+                            <h3>
+                                🎮 Mis juegos
+                            </h3>
+
+                            <p>
+                                Juegos sincronizados: {games.length}
+                            </p>
+
+                            {games.map((userGame) => (
+
+                                <div key={userGame.id}>
+
+                                    <h4>
+                                        {userGame.game.name}
+                                    </h4>
+
+                                    <p>
+                                        Tiempo jugado:{" "}
+                                        {userGame.playtime_forever} minutos
+                                    </p>
+
+                                </div>
+
+                            ))}
+
+                        </div>
+
+                    )}
 
                 </div>
 
@@ -254,5 +375,5 @@ export const Profile = () => {
             )}
 
         </div>
-    )
-}
+    );
+};

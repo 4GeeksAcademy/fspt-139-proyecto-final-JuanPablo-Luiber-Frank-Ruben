@@ -169,7 +169,7 @@ def login():
         access_token = create_access_token(identity=str(existing_user.id))
         return jsonify({"msg": "logeado correctamente", "token": access_token}), 200
     else:
-         return jsonify({"msg": "invalid email or password"}), 401
+        return jsonify({"error": "invalid email or password"}), 401
 
 
 @api.route("/users/<int:user_id>/games", methods=["POST"])
@@ -223,7 +223,8 @@ def sync_user_games(user_id):
 
     db.session.commit()
 
-    return jsonify({"msg": "Games synced successfully"}), 201    
+    return jsonify({"msg": "Games synced successfully"}), 201
+
 
 @api.route("/users/<int:user_id>/games", methods=["GET"])
 @jwt_required()
@@ -278,6 +279,124 @@ def steam_login():
 
     return jsonify({
         "steam_login_url": steam_login_url
+    }), 200
+
+
+@api.route("/steam/sync", methods=["POST"])
+@jwt_required()
+def sync_steam():
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    steam_account = user.steam_account
+
+    if not steam_account:
+        return jsonify({
+            "error": "Steam account not linked"
+        }), 404
+
+    steam_id = steam_account.steam_id
+
+    api_key = os.getenv("API_KEY")
+
+    if not api_key:
+        return jsonify({
+            "error": "Steam API key not configured"
+        }), 500
+
+    response = requests.get(
+        f"https://api.steamapis.com/v2/steam/users/{steam_id}/games",
+        headers={
+            "x-api-key": api_key
+        }
+    )
+
+    if response.status_code != 200:
+        try:
+            details = response.json()
+        except ValueError:
+            details = None
+
+        return jsonify({
+            "error": "Could not get Steam games",
+            "details": details
+        }), response.status_code
+
+    data = response.json()
+
+    games_list = data.get("result", [])
+
+    if not games_list:
+        return jsonify({
+            "error": "No Steam games found"
+        }), 404
+
+    for game_data in games_list:
+
+        game_info = game_data.get("game", {})
+
+        appid = game_info.get("id")
+        name = game_info.get("name")
+        icon = game_info.get("icon")
+        playtime_forever = game_data.get("minutes", 0)
+
+        if not appid or not name:
+            continue
+
+        game = db.session.execute(
+            db.select(Game).where(
+                Game.appid == appid
+            )
+        ).scalar_one_or_none()
+
+        if not game:
+            game = Game(
+                appid=appid,
+                name=name,
+                img_icon_url=icon
+            )
+
+            db.session.add(game)
+            db.session.flush()
+
+        user_game = db.session.execute(
+            db.select(UserGame).where(
+                UserGame.user_id == user_id,
+                UserGame.game_id == game.id
+            )
+        ).scalar_one_or_none()
+
+        if not user_game:
+            user_game = UserGame(
+                user_id=user_id,
+                game_id=game.id
+            )
+
+            db.session.add(user_game)
+
+        user_game.playtime_forever = playtime_forever
+
+    db.session.commit()
+
+    user_games = db.session.execute(
+        db.select(UserGame).where(
+            UserGame.user_id == user_id
+        )
+    ).scalars().all()
+
+    return jsonify({
+        "msg": "Steam synchronized successfully",
+        "games": [
+            user_game.serialize()
+            for user_game in user_games
+        ]
     }), 200
 
 
