@@ -4,7 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
 from api.models import db, User, Game, UserGame, SteamAccount
 from api.utils import generate_sitemap, APIException
-from api.steam_service import get_steam_games, map_steam_game
+from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
@@ -514,3 +514,29 @@ def sync_steam_games():
     db.session.commit()
 
     return jsonify({"msg": "Steam games synced successfully"}), 201
+
+
+@api.route("/steam/achievements/<int:appid>", methods=["GET"])
+@jwt_required()
+def get_achievements(appid):
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if not user.steam_account:
+        return jsonify({"error": "Steam account not linked"}), 400
+
+    steam_id = user.steam_account.steam_id
+
+    achievements, error = get_steam_achievements(steam_id, appid)
+
+    if error:
+        return jsonify({"error": error}), 502
+
+    mapped_achievements = [map_steam_achievement(a) for a in achievements]
+
+    return jsonify({"achievements": mapped_achievements}), 200
+
