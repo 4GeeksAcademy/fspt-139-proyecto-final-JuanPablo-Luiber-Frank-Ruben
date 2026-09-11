@@ -27,10 +27,10 @@ export const Login = () => {
             }
 
 
-            sessionStorage.setItem("token", data.token);
+            localStorage.setItem("token", data.token);
 
 
-            navigate("/private");
+            navigate("/profile");
 
         } catch (err) {
             setError("Could not connect to the backend");
@@ -70,7 +70,7 @@ export const Login = () => {
             </form>
 
             <p className="mt-3 text-center">
-                Don't have an account? <Link to="/signup">Sign up</Link>
+                Don't have an account? <Link to="/users">Sign up</Link>
             </p>
         </div>
     );
