@@ -4,6 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
 from api.models import db, User, Game, UserGame, SteamAccount
 from api.utils import generate_sitemap, APIException
+from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
@@ -304,32 +305,12 @@ def sync_steam():
 
     steam_id = steam_account.steam_id
 
-    api_key = os.getenv("API_KEY")
+    data, error = get_steam_games(steam_id)
 
-    if not api_key:
+    if error:
         return jsonify({
-            "error": "Steam API key not configured"
-        }), 500
-
-    response = requests.get(
-        f"https://api.steamapis.com/v2/steam/users/{steam_id}/games",
-        headers={
-            "x-api-key": api_key
-        }
-    )
-
-    if response.status_code != 200:
-        try:
-            details = response.json()
-        except ValueError:
-            details = None
-
-        return jsonify({
-            "error": "Could not get Steam games",
-            "details": details
-        }), response.status_code
-
-    data = response.json()
+            "error": error
+        }), 502
 
     games_list = data.get("result", [])
 
@@ -338,14 +319,11 @@ def sync_steam():
             "error": "No Steam games found"
         }), 404
 
-    for game_data in games_list:
+    for steam_game in games_list:
 
-        game_info = game_data.get("game", {})
-
-        appid = game_info.get("id")
-        name = game_info.get("name")
-        icon = game_info.get("icon")
-        playtime_forever = game_data.get("minutes", 0)
+        game_data = map_steam_game(steam_game)
+        appid = game_data.get("appid")
+        name = game_data.get("name")
 
         if not appid or not name:
             continue
@@ -360,7 +338,7 @@ def sync_steam():
             game = Game(
                 appid=appid,
                 name=name,
-                img_icon_url=icon
+                img_icon_url=game_data.get("img_icon_url")
             )
 
             db.session.add(game)
@@ -381,7 +359,7 @@ def sync_steam():
 
             db.session.add(user_game)
 
-        user_game.playtime_forever = playtime_forever
+        user_game.playtime_forever = game_data.get("playtime_forever", 0)
 
     db.session.commit()
 
@@ -398,7 +376,6 @@ def sync_steam():
             for user_game in user_games
         ]
     }), 200
-
 
 @api.route("/steam/callback", methods=["GET"])
 def steam_callback():
@@ -575,3 +552,29 @@ def get_steam_profile():
         "steam_account": steam_account.serialize(),
         "steam_profile": data
     }), 200
+
+
+@api.route("/steam/achievements/<int:appid>", methods=["GET"])
+@jwt_required()
+def get_achievements(appid):
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if not user.steam_account:
+        return jsonify({"error": "Steam account not linked"}), 400
+
+    steam_id = user.steam_account.steam_id
+
+    achievements, error = get_steam_achievements(steam_id, appid)
+
+    if error:
+        return jsonify({"error": error}), 502
+
+    mapped_achievements = [map_steam_achievement(a) for a in achievements]
+
+    return jsonify({"achievements": mapped_achievements}), 200
+

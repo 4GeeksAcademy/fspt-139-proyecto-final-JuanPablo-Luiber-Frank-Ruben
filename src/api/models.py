@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, datetime
-from sqlalchemy import String, Boolean, Date, ForeignKey, Table, Column
+from sqlalchemy import String, Boolean, Date, ForeignKey, Table, Column, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from flask_bcrypt import generate_password_hash, check_password_hash
 from typing import List
@@ -39,6 +39,8 @@ class User(db.Model):
         back_populates="friendships"
     )
     games: Mapped[List["UserGame"]] = relationship("UserGame", back_populates="user")
+    achievements: Mapped[List["UserAchievement"]] = relationship("UserAchievement", back_populates="user")
+
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password).decode('utf-8')
@@ -67,6 +69,8 @@ class Game(db.Model):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     img_icon_url: Mapped[str] = mapped_column(String(500), nullable=True)
     user_games: Mapped[List["UserGame"]] = relationship("UserGame", back_populates="game")
+    achievements: Mapped[List["Achievement"]] = relationship("Achievement", back_populates="game")
+
 
     def serialize(self):
         return {
@@ -75,9 +79,28 @@ class Game(db.Model):
             "name": self.name,
             "img_icon_url": self.img_icon_url
         }
-       
-        
 
+class Achievement(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    description: Mapped[str] = mapped_column(String(500), nullable=True)
+    image_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    
+    game_id: Mapped[int] = mapped_column(ForeignKey("game.id"), nullable=False)
+    user_achievements: Mapped[List["UserAchievement"]] = relationship("UserAchievement", back_populates="achievement")
+
+    game: Mapped["Game"] = relationship("Game", back_populates="achievements")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "image_url": self.image_url,
+            "game_id": self.game_id
+        }
+    
+       
 class SteamAccount(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     steam_id: Mapped[str] = mapped_column(String(60), nullable=False, unique=True)
@@ -107,6 +130,30 @@ class UserGame(db.Model):
             "playtime_forever": self.playtime_forever,
             "game": self.game.serialize()
         }
+
+class UserAchievement(db.Model):
+    __table_args__ = (
+        UniqueConstraint("user_id", "achievement_id", name="uq_user_achievement"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    achievement_id: Mapped[int] = mapped_column(ForeignKey("achievement.id"), nullable=False)
+    unlocked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    unlocked_at: Mapped[date] = mapped_column(Date, nullable=True)
+
+    user: Mapped["User"] = relationship("User", back_populates="achievements")
+    achievement: Mapped["Achievement"] = relationship("Achievement", back_populates="user_achievements")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "unlocked": self.unlocked,
+            "unlocked_at": self.unlocked_at.isoformat() if self.unlocked_at else None,
+            "achievement": self.achievement.serialize()
+        }
+    
            
         
 
