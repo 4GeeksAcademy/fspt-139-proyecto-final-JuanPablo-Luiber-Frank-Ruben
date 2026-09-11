@@ -578,3 +578,126 @@ def get_achievements(appid):
 
     return jsonify({"achievements": mapped_achievements}), 200
 
+
+@api.route("/steam/games/almost-completed", methods=["GET"])
+@jwt_required()
+def get_almost_completed_games():
+
+    # ==========================================
+    # 1. OBTENER USUARIO DEL JWT
+    # ==========================================
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+
+    # ==========================================
+    # 2. COMPROBAR STEAM
+    # ==========================================
+
+    if not user.steam_account:
+        return jsonify({
+            "error": "Steam account not linked"
+        }), 400
+
+    steam_id = user.steam_account.steam_id
+
+
+    # ==========================================
+    # 3. OBTENER LOS JUEGOS DEL USUARIO
+    # ==========================================
+
+    user_games = db.session.execute(
+        db.select(UserGame).where(
+            UserGame.user_id == user_id
+        )
+    ).scalars().all()
+
+
+    almost_completed = []
+
+
+    # ==========================================
+    # 4. REVISAR LOS LOGROS DE CADA JUEGO
+    # ==========================================
+
+    for user_game in user_games:
+
+        appid = user_game.game.appid
+
+        achievements, error = get_steam_achievements(
+            steam_id,
+            appid
+        )
+
+        # Si SteamApis devuelve error para este juego,
+        # simplemente pasamos al siguiente.
+        if error:
+            continue
+
+        # Si el juego no tiene logros
+        if not achievements:
+            continue
+
+
+        # ==========================================
+        # 5. CONTAR LOGROS
+        # ==========================================
+
+        total_achievements = len(achievements)
+
+        unlocked_achievements = sum(
+            1
+            for achievement in achievements
+            if achievement.get("unlocked") is True
+        )
+
+
+        # ==========================================
+        # 6. CALCULAR PORCENTAJE
+        # ==========================================
+
+        percentage = (
+            unlocked_achievements / total_achievements
+        ) * 100
+
+
+        # ==========================================
+        # 7. FILTRAR >= 80%
+        # ==========================================
+
+        if percentage >= 80:
+
+            almost_completed.append({
+                "appid": appid,
+                "name": user_game.game.name,
+                "percentage": round(percentage, 2),
+                "achievements_unlocked": unlocked_achievements,
+                "achievements_total": total_achievements
+            })
+
+
+    # ==========================================
+    # 8. ORDENAR DE MAYOR A MENOR
+    # ==========================================
+
+    almost_completed.sort(
+        key=lambda game: game["percentage"],
+        reverse=True
+    )
+
+
+    # ==========================================
+    # 9. DEVOLVER RESULTADO
+    # ==========================================
+
+    return jsonify({
+        "games": almost_completed
+    }), 200
+

@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const FILTERS = [
-    {key: "all", Label: "Todos"},
+    {key: "all", label: "Todos"},
     {key: "favorites", label: "Favoritos"},
     {key: "recent", label: "Mas jugados"},
 ];
@@ -20,16 +19,15 @@ function getUserIdFromToken (token) {
 //Endpoints para sacar los juegos del usuario
 
 export const MyGames = () => {
-    const { store } = useGlobalReducer();
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-    const [ token, setToken ] = useStote(null);
+    const [ token, setToken ] = useState(null);
     const [ userId, setUserId ] = useState(null);
     const [ userGames, setUserGames ] = useState([]);
     const [ loading, setLoading ] = useState( true );
     const [ error, setError ] = useState("");
     const [ filter, setFilter ] = useState("all");
-    const [ search, setsearch ] = useState("");
+    const [ search, setSearch ] = useState("");
     
     const [ form, setForm ] = useState({ appid: "", name: "", img_icon_url: "", playtime_forever: ""});
     const [ formError, setFromError ] = useState("");
@@ -147,8 +145,6 @@ export const MyGames = () => {
 					</div>
 				</div>
 			</header>
-            
-            //parte de añadir juegos
 
             <section className="bg-black bg-opacity-25 border-top border-bottom border-secondary py-4">
 				<div className="container">
@@ -185,8 +181,6 @@ export const MyGames = () => {
 					</form>
 				</div>
 			</section>
-
-			// get para los juegos
 
 			<section className="container py-5">
 				<div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
