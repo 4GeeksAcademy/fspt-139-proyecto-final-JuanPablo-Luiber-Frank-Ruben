@@ -13,6 +13,7 @@ import { Navbar } from "./components/Navbar";
 import { Profile } from "./pages/Profile";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
+import { MyGames } from "./pages/MyGames";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -32,6 +33,8 @@ export const router = createBrowserRouter(
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
         <Route path="/users" element={<Signup />} />
+        <Route path="/games" element={<MyGames />} />
+
       </Route>
     )
 );
