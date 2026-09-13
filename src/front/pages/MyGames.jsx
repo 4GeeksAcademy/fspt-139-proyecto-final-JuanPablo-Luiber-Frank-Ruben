@@ -24,8 +24,8 @@ export const MyGames = () => {
     const { store } = useGlobalReducer();
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-	const { favorites, toggleFavorite } = useFavorites(token);
     const [ token, setToken ] = useState(null);
+	const { favorites, toggleFavorite } = useFavorites(token);
     const [ userId, setUserId ] = useState(null);
     const [ userGames, setUserGames ] = useState([]);
     const [ loading, setLoading ] = useState( true );
@@ -229,10 +229,10 @@ export const MyGames = () => {
 							<div className="col-6 col-md-4 col-lg-3" key={ug.id}>
 								<div className="card bg-black text-light border-secondary h-100 position-relative">
 
-									//Añadido el boton de favorito
+									{/*Añadido el boton de favorito*/}
 
 									<button className={`btn btn-sm position-absolute top-0 end-0 m-2 ${favorites.includes(ug.game.appid) ? "btn-warning" : "btn-outline-light"}`}
-										onClick={() => toggleFavorite(ug.game.appid)}title="Marcar favorito">
+										onClick={() => toggleFavorite(ug.game.appid)} title="Marcar favorito">
 										<i className={favorites.includes(ug.game.appid) ? "fa-solid fa-star" : "fa-regular fa-star"}></i>
 									</button>
 
