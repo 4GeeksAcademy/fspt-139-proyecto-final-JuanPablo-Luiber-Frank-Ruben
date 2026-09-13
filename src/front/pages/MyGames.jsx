@@ -25,16 +25,16 @@ export const MyGames = () => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 	const { favorites, toggleFavorite } = useFavorites(token);
-    const [ token, setToken ] = useStote(null);
+    const [ token, setToken ] = useState(null);
     const [ userId, setUserId ] = useState(null);
     const [ userGames, setUserGames ] = useState([]);
     const [ loading, setLoading ] = useState( true );
     const [ error, setError ] = useState("");
     const [ filter, setFilter ] = useState("all");
-    const [ search, setsearch ] = useState("");
+    const [ search, setSearch ] = useState("");
     
     const [ form, setForm ] = useState({ appid: "", name: "", img_icon_url: "", playtime_forever: ""});
-    const [ formError, setFromError ] = useState("");
+    const [ formError, setFormError ] = useState("");
     const [ saving, setSaving ] = useState(false);
 
     //almacenamos el token en el loalstorage
@@ -150,8 +150,8 @@ export const MyGames = () => {
 					</div>
 				</div>
 			</header>
-            
-            //parte de añadir juegos
+
+			{/* parte de añadir juegos */}
 
             <section className="bg-black bg-opacity-25 border-top border-bottom border-secondary py-4">
 				<div className="container">
@@ -189,7 +189,7 @@ export const MyGames = () => {
 				</div>
 			</section>
 
-			// get para los juegos
+			{/* get para los juegos */}
 
 			<section className="container py-5">
 				<div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
