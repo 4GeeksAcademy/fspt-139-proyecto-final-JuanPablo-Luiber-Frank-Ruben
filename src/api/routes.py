@@ -263,6 +263,9 @@ def steam_login():
 
     session["steam_link_user_id"] = user_id
 
+    print("STEAM LINK USER ID GUARDADO:", user_id)
+    print("SESSION:", dict(session))
+
     return_url = os.getenv('STEAM_RETURN_URL')
 
     params = {
@@ -377,10 +380,14 @@ def sync_steam():
         ]
     }), 200
 
+
 @api.route("/steam/callback", methods=["GET"])
 def steam_callback():
 
     user_id = session.get("steam_link_user_id")
+
+    print("CALLBACK SESSION:", dict(session))
+    print("CALLBACK USER ID:", user_id)
 
     if not user_id:
         return jsonify({
@@ -416,6 +423,9 @@ def steam_callback():
 
     steam_id = claimed_id.rsplit("/", 1)[-1]
 
+    print("STEAM ID OBTENIDO:", steam_id)
+    print("USER ID:", user_id)
+
     user = db.session.get(User, user_id)
 
     if not user:
@@ -423,6 +433,9 @@ def steam_callback():
             "error": "User not found"
         }), 404
 
+    print("USUARIO ENCONTRADO:", user.id)
+
+    # Buscar si Steam ya está vinculada
     existing_steam_account = db.session.execute(
         db.select(SteamAccount).where(
             SteamAccount.steam_id == steam_id
@@ -430,9 +443,34 @@ def steam_callback():
     ).scalar_one_or_none()
 
     if existing_steam_account:
+
+        print(
+            "STEAM ACCOUNT YA EXISTE:",
+            existing_steam_account.id
+        )
+
+        # Ya pertenece a este usuario
+        if existing_steam_account.user_id == user.id:
+
+            print("STEAM YA ESTABA VINCULADA A ESTE USUARIO")
+
+            session.pop("steam_link_user_id", None)
+
+            frontend_url = os.getenv("VITE_FRONTEND_URL")
+
+            return redirect(
+                f"{frontend_url}/profile?steam=connected"
+            )
+
+        # Pertenece a otro usuario
+        print("STEAM PERTENECE A OTRO USUARIO")
+
         return jsonify({
-            "error": "This Steam account is already linked"
+            "error": "This Steam account is already linked to another user"
         }), 400
+
+    # Crear nueva vinculación
+    print("CREANDO STEAM ACCOUNT")
 
     steam_account = SteamAccount(
         steam_id=steam_id,
@@ -441,6 +479,11 @@ def steam_callback():
 
     db.session.add(steam_account)
     db.session.commit()
+
+    print(
+        "STEAM ACCOUNT GUARDADA:",
+        steam_account.id
+    )
 
     session.pop("steam_link_user_id", None)
 
@@ -510,7 +553,11 @@ def unlink_steam():
 @jwt_required()
 def get_steam_profile():
 
+    print("ENTRO EN STEAM PROFILE")
+
     user_id = get_jwt_identity()
+
+    print("JWT USER ID:", user_id)
 
     user = db.session.get(User, user_id)
 
@@ -577,4 +624,127 @@ def get_achievements(appid):
     mapped_achievements = [map_steam_achievement(a) for a in achievements]
 
     return jsonify({"achievements": mapped_achievements}), 200
+
+
+@api.route("/steam/games/almost-completed", methods=["GET"])
+@jwt_required()
+def get_almost_completed_games():
+
+    # ==========================================
+    # 1. OBTENER USUARIO DEL JWT
+    # ==========================================
+
+    user_id = get_jwt_identity()
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+
+    # ==========================================
+    # 2. COMPROBAR STEAM
+    # ==========================================
+
+    if not user.steam_account:
+        return jsonify({
+            "error": "Steam account not linked"
+        }), 400
+
+    steam_id = user.steam_account.steam_id
+
+
+    # ==========================================
+    # 3. OBTENER LOS JUEGOS DEL USUARIO
+    # ==========================================
+
+    user_games = db.session.execute(
+        db.select(UserGame).where(
+            UserGame.user_id == user_id
+        )
+    ).scalars().all()
+
+
+    almost_completed = []
+
+
+    # ==========================================
+    # 4. REVISAR LOS LOGROS DE CADA JUEGO
+    # ==========================================
+
+    for user_game in user_games:
+
+        appid = user_game.game.appid
+
+        achievements, error = get_steam_achievements(
+            steam_id,
+            appid
+        )
+
+        # Si SteamApis devuelve error para este juego,
+        # simplemente pasamos al siguiente.
+        if error:
+            continue
+
+        # Si el juego no tiene logros
+        if not achievements:
+            continue
+
+
+        # ==========================================
+        # 5. CONTAR LOGROS
+        # ==========================================
+
+        total_achievements = len(achievements)
+
+        unlocked_achievements = sum(
+            1
+            for achievement in achievements
+            if achievement.get("unlocked") is True
+        )
+
+
+        # ==========================================
+        # 6. CALCULAR PORCENTAJE
+        # ==========================================
+
+        percentage = (
+            unlocked_achievements / total_achievements
+        ) * 100
+
+
+        # ==========================================
+        # 7. FILTRAR >= 80%
+        # ==========================================
+
+        if percentage >= 80:
+
+            almost_completed.append({
+                "appid": appid,
+                "name": user_game.game.name,
+                "percentage": round(percentage, 2),
+                "achievements_unlocked": unlocked_achievements,
+                "achievements_total": total_achievements
+            })
+
+
+    # ==========================================
+    # 8. ORDENAR DE MAYOR A MENOR
+    # ==========================================
+
+    almost_completed.sort(
+        key=lambda game: game["percentage"],
+        reverse=True
+    )
+
+
+    # ==========================================
+    # 9. DEVOLVER RESULTADO
+    # ==========================================
+
+    return jsonify({
+        "games": almost_completed
+    }), 200
 
