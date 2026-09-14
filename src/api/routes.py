@@ -263,6 +263,9 @@ def steam_login():
 
     session["steam_link_user_id"] = user_id
 
+    print("STEAM LINK USER ID GUARDADO:", user_id)
+    print("SESSION:", dict(session))
+
     return_url = os.getenv('STEAM_RETURN_URL')
 
     params = {
@@ -377,10 +380,14 @@ def sync_steam():
         ]
     }), 200
 
+
 @api.route("/steam/callback", methods=["GET"])
 def steam_callback():
 
     user_id = session.get("steam_link_user_id")
+
+    print("CALLBACK SESSION:", dict(session))
+    print("CALLBACK USER ID:", user_id)
 
     if not user_id:
         return jsonify({
@@ -416,6 +423,9 @@ def steam_callback():
 
     steam_id = claimed_id.rsplit("/", 1)[-1]
 
+    print("STEAM ID OBTENIDO:", steam_id)
+    print("USER ID:", user_id)
+
     user = db.session.get(User, user_id)
 
     if not user:
@@ -423,6 +433,9 @@ def steam_callback():
             "error": "User not found"
         }), 404
 
+    print("USUARIO ENCONTRADO:", user.id)
+
+    # Buscar si Steam ya está vinculada
     existing_steam_account = db.session.execute(
         db.select(SteamAccount).where(
             SteamAccount.steam_id == steam_id
@@ -430,9 +443,34 @@ def steam_callback():
     ).scalar_one_or_none()
 
     if existing_steam_account:
+
+        print(
+            "STEAM ACCOUNT YA EXISTE:",
+            existing_steam_account.id
+        )
+
+        # Ya pertenece a este usuario
+        if existing_steam_account.user_id == user.id:
+
+            print("STEAM YA ESTABA VINCULADA A ESTE USUARIO")
+
+            session.pop("steam_link_user_id", None)
+
+            frontend_url = os.getenv("VITE_FRONTEND_URL")
+
+            return redirect(
+                f"{frontend_url}/profile?steam=connected"
+            )
+
+        # Pertenece a otro usuario
+        print("STEAM PERTENECE A OTRO USUARIO")
+
         return jsonify({
-            "error": "This Steam account is already linked"
+            "error": "This Steam account is already linked to another user"
         }), 400
+
+    # Crear nueva vinculación
+    print("CREANDO STEAM ACCOUNT")
 
     steam_account = SteamAccount(
         steam_id=steam_id,
@@ -441,6 +479,11 @@ def steam_callback():
 
     db.session.add(steam_account)
     db.session.commit()
+
+    print(
+        "STEAM ACCOUNT GUARDADA:",
+        steam_account.id
+    )
 
     session.pop("steam_link_user_id", None)
 
@@ -510,7 +553,11 @@ def unlink_steam():
 @jwt_required()
 def get_steam_profile():
 
+    print("ENTRO EN STEAM PROFILE")
+
     user_id = get_jwt_identity()
+
+    print("JWT USER ID:", user_id)
 
     user = db.session.get(User, user_id)
 
