@@ -5,7 +5,7 @@ export const Navbar = () => {
 
 	const navigate = useNavigate();
 	const location = useLocation();
-	const [Token, setToken] = useState(localStorage.getItem)
+	const [token, setToken] = useState(() => localStorage.getItem("token"))
 
 	useEffect(() => {
 		setToken(localStorage.getItem("token"));
@@ -24,10 +24,10 @@ export const Navbar = () => {
 		<nav className = "navbar navbar-expand-lg navbar-dar bg-dark">
 			<div className = "container">
 				
-				<link to = {token ? "/profile" : "/login"} className="navbar-brand d-flex align-items-center gap-2">
+				<Link to={token ? "/profile" : "/login"} className="navbar-brand d-flex align-items-center gap-2">
 					<i className="fa-solid fa-trophy"></i>
 					<span>Trophy <strong className="text-primary">Hunter</strong></span>
-				</link>
+				</Link>
 
 				<button	className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
 					aria-controls="navbarNav" aria-expanded="false" aria-label="Abrir menú">
@@ -42,9 +42,9 @@ export const Navbar = () => {
 						
 						<ul className="navbar-nav me-auto">
 							<li className="nav-item">
-								<link className= {`nav-link ${isActive("/profile")}`} to="/profile">
+								<Link className={`nav-link ${isActive("/profile")}`} to="/profile">
 								<i className="fa-solid fa-user me-1"></i> Perfil
-								</link>
+								</Link>
 							</li>
 							<li className="nav-item">
 								<Link className={`nav-link ${isActive("/games")}`} to="/games">
