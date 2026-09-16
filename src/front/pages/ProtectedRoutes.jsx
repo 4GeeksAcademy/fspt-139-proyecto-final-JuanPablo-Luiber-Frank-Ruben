@@ -4,7 +4,7 @@ import useGlobalReducer from "../hooks/useGlobalReducer";
 export const ProtectedRoutes = ()=>{
     const {store, dispatch} = useGlobalReducer();
 
-    if (!store.token) {
+    if (!localStorage.getItem("token")) {
         return <Navigate to={"/404"} replace />
     }
 

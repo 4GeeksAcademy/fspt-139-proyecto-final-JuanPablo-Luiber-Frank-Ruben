@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AlmostCompletedGames } from "../components/AlmostCompletedGames";
 
 
 export const Profile = () => {
@@ -383,6 +384,10 @@ export const Profile = () => {
                         ❌ Desvincular Steam
                     </button>
 
+                    {/* CASI COMPLETADOS */}
+
+                    <AlmostCompletedGames />
+
                     {/* JUEGOS */}
                     {games.length > 0 && (
 
@@ -406,7 +411,7 @@ export const Profile = () => {
 
                                     <p>
                                         Tiempo jugado:{" "}
-                                        {userGame.playtime_forever} minutos
+                                        {Math.floor(userGame.playtime_forever / 60)} horas
                                     </p>
 
                                 </div>

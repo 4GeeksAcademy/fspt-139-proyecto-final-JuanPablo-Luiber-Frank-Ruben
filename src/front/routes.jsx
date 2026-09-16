@@ -38,7 +38,6 @@ export const router = createBrowserRouter(
           <Route path="/profile" element={<Profile />} />
           <Route path="/games" element={<MyGames />} />
         </Route>
-        
         <Route path="/404" element={<NotFound />} />
       </Route>
     )

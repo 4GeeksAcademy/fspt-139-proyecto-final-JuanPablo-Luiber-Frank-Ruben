@@ -12,6 +12,9 @@ import os
 
 api = Blueprint('api', __name__)
 
+ALMOST_COMPLETED_THRESHOLD = 80
+ALMOST_COMPLETED_MIN_PLAYTIME = 10 * 60
+
 
 @api.route("/users", methods=["POST"])
 def create_user():
@@ -308,6 +311,10 @@ def sync_steam():
 
     steam_id = steam_account.steam_id
 
+    # ==========================================
+    # 1. OBTENER JUEGOS DE STEAM
+    # ==========================================
+
     data, error = get_steam_games(steam_id)
 
     if error:
@@ -322,14 +329,23 @@ def sync_steam():
             "error": "No Steam games found"
         }), 404
 
+    # ==========================================
+    # 2. PROCESAR CADA JUEGO
+    # ==========================================
+
     for steam_game in games_list:
 
         game_data = map_steam_game(steam_game)
+
         appid = game_data.get("appid")
         name = game_data.get("name")
 
         if not appid or not name:
             continue
+
+        # ==========================================
+        # 3. BUSCAR O CREAR GAME
+        # ==========================================
 
         game = db.session.execute(
             db.select(Game).where(
@@ -338,6 +354,7 @@ def sync_steam():
         ).scalar_one_or_none()
 
         if not game:
+
             game = Game(
                 appid=appid,
                 name=name,
@@ -347,6 +364,10 @@ def sync_steam():
             db.session.add(game)
             db.session.flush()
 
+        # ==========================================
+        # 4. BUSCAR O CREAR USER_GAME
+        # ==========================================
+
         user_game = db.session.execute(
             db.select(UserGame).where(
                 UserGame.user_id == user_id,
@@ -355,6 +376,7 @@ def sync_steam():
         ).scalar_one_or_none()
 
         if not user_game:
+
             user_game = UserGame(
                 user_id=user_id,
                 game_id=game.id
@@ -362,9 +384,65 @@ def sync_steam():
 
             db.session.add(user_game)
 
-        user_game.playtime_forever = game_data.get("playtime_forever", 0)
+        # ==========================================
+        # 5. ACTUALIZAR TIEMPO JUGADO
+        # ==========================================
+
+        user_game.playtime_forever = game_data.get(
+            "playtime_forever",
+            0
+        )
+
+        # ==========================================
+        # 6. OBTENER LOGROS DEL JUEGO
+        # ==========================================
+
+        achievements, achievement_error = get_steam_achievements(
+            steam_id,
+            appid
+        )
+
+        # ==========================================
+        # 7. GUARDAR ESTADÍSTICAS DE LOGROS
+        # ==========================================
+
+        if achievement_error or not achievements:
+
+            user_game.achievements_total = 0
+            user_game.achievements_unlocked = 0
+            user_game.achievement_percentage = 0
+
+        else:
+
+            total_achievements = len(achievements)
+
+            unlocked_achievements = sum(
+                1
+                for achievement in achievements
+                if achievement.get("unlocked") is True
+            )
+
+            percentage = (
+                unlocked_achievements /
+                total_achievements
+            ) * 100
+
+            user_game.achievements_total = total_achievements
+            user_game.achievements_unlocked = unlocked_achievements
+            user_game.achievement_percentage = round(
+                percentage,
+                2
+            )
+
+    # ==========================================
+    # 8. GUARDAR CAMBIOS
+    # ==========================================
 
     db.session.commit()
+
+    # ==========================================
+    # 9. OBTENER JUEGOS ACTUALIZADOS
+    # ==========================================
 
     user_games = db.session.execute(
         db.select(UserGame).where(
@@ -653,11 +731,9 @@ def get_almost_completed_games():
             "error": "Steam account not linked"
         }), 400
 
-    steam_id = user.steam_account.steam_id
-
 
     # ==========================================
-    # 3. OBTENER LOS JUEGOS DEL USUARIO
+    # 3. OBTENER JUEGOS DEL USUARIO
     # ==========================================
 
     user_games = db.session.execute(
@@ -671,67 +747,54 @@ def get_almost_completed_games():
 
 
     # ==========================================
-    # 4. REVISAR LOS LOGROS DE CADA JUEGO
+    # 4. REVISAR LOS JUEGOS
     # ==========================================
 
     for user_game in user_games:
 
-        appid = user_game.game.appid
+        # ------------------------------------------
+        # Mínimo 20 horas de juego
+        # 20 horas = 1200 minutos
+        # ------------------------------------------
 
-        achievements, error = get_steam_achievements(
-            steam_id,
-            appid
-        )
-
-        # Si SteamApis devuelve error para este juego,
-        # simplemente pasamos al siguiente.
-        if error:
-            continue
-
-        # Si el juego no tiene logros
-        if not achievements:
+        if user_game.playtime_forever < ALMOST_COMPLETED_MIN_PLAYTIME:
             continue
 
 
-        # ==========================================
-        # 5. CONTAR LOGROS
-        # ==========================================
+        # ------------------------------------------
+        # Ignorar juegos sin logros
+        # ------------------------------------------
 
-        total_achievements = len(achievements)
-
-        unlocked_achievements = sum(
-            1
-            for achievement in achievements
-            if achievement.get("unlocked") is True
-        )
+        if user_game.achievements_total <= 0:
+            continue
 
 
-        # ==========================================
-        # 6. CALCULAR PORCENTAJE
-        # ==========================================
+        # ------------------------------------------
+        # Obtener porcentaje guardado en BD
+        # ------------------------------------------
 
-        percentage = (
-            unlocked_achievements / total_achievements
-        ) * 100
+        percentage = user_game.achievement_percentage
 
 
-        # ==========================================
-        # 7. FILTRAR >= 80%
-        # ==========================================
+        # ------------------------------------------
+        # Filtrar juegos casi completados
+        # ------------------------------------------
 
-        if percentage >= 80:
+        if percentage >= ALMOST_COMPLETED_THRESHOLD:
 
             almost_completed.append({
-                "appid": appid,
+                "appid": user_game.game.appid,
                 "name": user_game.game.name,
-                "percentage": round(percentage, 2),
-                "achievements_unlocked": unlocked_achievements,
-                "achievements_total": total_achievements
+                "percentage": percentage,
+                "achievements_unlocked": user_game.achievements_unlocked,
+                "achievements_total": user_game.achievements_total,
+                "playtime_forever": user_game.playtime_forever,
+                "completed": percentage == 100
             })
 
 
     # ==========================================
-    # 8. ORDENAR DE MAYOR A MENOR
+    # 5. ORDENAR POR PROGRESO
     # ==========================================
 
     almost_completed.sort(
@@ -741,7 +804,7 @@ def get_almost_completed_games():
 
 
     # ==========================================
-    # 9. DEVOLVER RESULTADO
+    # 6. DEVOLVER RESULTADO
     # ==========================================
 
     return jsonify({
