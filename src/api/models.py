@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, datetime
-from sqlalchemy import String, Boolean, Date, ForeignKey, Table, Column, UniqueConstraint
+from sqlalchemy import String, Boolean, Date, ForeignKey, Table, Column, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from flask_bcrypt import generate_password_hash, check_password_hash
 from typing import List
@@ -159,7 +159,21 @@ class UserAchievement(db.Model):
             "unlocked_at": self.unlocked_at.isoformat() if self.unlocked_at else None,
             "achievement": self.achievement.serialize()
         }
-    
+
+class Favorite(db.Model):
+    __tablename__ = "favorite"
+    __table_args__ = (UniqueConstraint("user_id", "appid", name="uq_favorite_user_appid"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    appid: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", backref="favorites")
+
+    def serialize(self):
+        return {"appid": self.appid}
+
            
         
 

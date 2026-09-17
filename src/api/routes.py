@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
-from api.models import db, User, Game, UserGame, SteamAccount
+from api.models import db, User, Game, UserGame, SteamAccount, Favorite
 from api.utils import generate_sitemap, APIException
 from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
@@ -811,3 +811,37 @@ def get_almost_completed_games():
         "games": almost_completed
     }), 200
 
+@api.route("/favorites", methods=["GET"])
+@jwt_required()
+def get_favorites():
+    user_id = int(get_jwt_identity())
+    favs = db.session.execute(db.select(Favorite).where(Favorite.user_id == user_id)).scalars().all()
+    return jsonify({"favorites": [f.appid for f in favs]}), 200
+
+
+@api.route("/favorites/<int:appid>", methods=["POST"])
+@jwt_required()
+def add_favorite(appid):
+    user_id = int(get_jwt_identity())
+    existing = db.session.execute(db.select(Favorite).where(
+        Favorite.user_id == user_id, Favorite.appid == appid)).scalar_one_or_none()
+    if existing:
+        return jsonify({"msg": "Already a favorite"}), 200
+
+    db.session.add(Favorite(user_id=user_id, appid=appid))
+    db.session.commit()
+    return jsonify({"msg": "Added to favorites"}), 201
+
+
+@api.route("/favorites/<int:appid>", methods=["DELETE"])
+@jwt_required()
+def remove_favorite(appid):
+    user_id = int(get_jwt_identity())
+    existing = db.session.execute(db.select(Favorite).where(
+        Favorite.user_id == user_id, Favorite.appid == appid)).scalar_one_or_none()
+    if not existing:
+        return jsonify({"error": "Favorite not found"}), 404
+
+    db.session.delete(existing)
+    db.session.commit()
+    return jsonify({"msg": "Removed from favorites"}), 200
