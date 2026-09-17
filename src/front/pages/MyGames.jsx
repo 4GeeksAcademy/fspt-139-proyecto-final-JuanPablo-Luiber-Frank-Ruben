@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import useFavorites from "../hooks/useFavorites";
+import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const FILTERS = [
     {key: "all", label: "Todos"},
@@ -22,6 +24,7 @@ export const MyGames = () => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     const [ token, setToken ] = useState(null);
+  	const { favorites, toggleFavorite } = useFavorites(token);
     const [ userId, setUserId ] = useState(null);
     const [ userGames, setUserGames ] = useState([]);
     const [ loading, setLoading ] = useState( true );
@@ -30,7 +33,7 @@ export const MyGames = () => {
     const [ search, setSearch ] = useState("");
     
     const [ form, setForm ] = useState({ appid: "", name: "", img_icon_url: "", playtime_forever: ""});
-    const [ formError, setFromError ] = useState("");
+    const [ formError, setFormError ] = useState("");
     const [ saving, setSaving ] = useState(false);
 
     //almacenamos el token en el loalstorage
@@ -67,8 +70,9 @@ export const MyGames = () => {
 			const q = search.trim().toLowerCase();
 			result = result.filter((ug) => ug.game.name.toLowerCase().includes(q));
 		}
+		if (filter === "favorites") result = result.filter((ug) => favorites.includes(ug.game.appid));
 		return result;
-	}, [ userGames, filter, search ]);
+	}, [ userGames, filter, search, favorites ]);
 
 	const stats = useMemo(() => {
 		const totalMinutes = userGames.reduce(( sum, ug ) => sum + ( ug.playtime_forever || 0 ), 0 );
@@ -146,6 +150,8 @@ export const MyGames = () => {
 				</div>
 			</header>
 
+			{/* parte de añadir juegos */}
+
             <section className="bg-black bg-opacity-25 border-top border-bottom border-secondary py-4">
 				<div className="container">
 					<h2 className="h5 fw-bold mb-3">Añadir un juego</h2>
@@ -181,6 +187,8 @@ export const MyGames = () => {
 					</form>
 				</div>
 			</section>
+
+			{/* get para los juegos */}
 
 			<section className="container py-5">
 				<div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
@@ -218,7 +226,15 @@ export const MyGames = () => {
 					<div className="row g-3">
 						{filteredGames.map((ug) => (
 							<div className="col-6 col-md-4 col-lg-3" key={ug.id}>
-								<div className="card bg-black text-light border-secondary h-100">
+								<div className="card bg-black text-light border-secondary h-100 position-relative">
+
+									{/*Añadido el boton de favorito*/}
+
+									<button className={`btn btn-sm position-absolute top-0 end-0 m-2 ${favorites.includes(ug.game.appid) ? "btn-warning" : "btn-outline-light"}`}
+										onClick={() => toggleFavorite(ug.game.appid)} title="Marcar favorito">
+										<i className={favorites.includes(ug.game.appid) ? "fa-solid fa-star" : "fa-regular fa-star"}></i>
+									</button>
+
 									<img
 										src={ug.game.img_icon_url || `https://cdn.cloudflare.steamstatic.com/steam/apps/${ug.game.appid}/header.jpg`}
 										className="card-img-top"
