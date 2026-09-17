@@ -119,6 +119,9 @@ class UserGame(db.Model):
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
     game_id: Mapped[int] = mapped_column(ForeignKey("game.id"), nullable=False)
     playtime_forever: Mapped[int] = mapped_column(nullable=False, default=0)
+    achievements_total: Mapped[int] = mapped_column(nullable=False,default=0)
+    achievements_unlocked: Mapped[int] = mapped_column(nullable=False,default=0)
+    achievement_percentage: Mapped[float] = mapped_column(nullable=False,default=0)
 
     user: Mapped["User"] = relationship("User", back_populates="games")
     game: Mapped["Game"] = relationship("Game", back_populates="user_games")
@@ -128,6 +131,9 @@ class UserGame(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "playtime_forever": self.playtime_forever,
+            "achievements_total": self.achievements_total,
+            "achievements_unlocked": self.achievements_unlocked,
+            "achievement_percentage": self.achievement_percentage,
             "game": self.game.serialize()
         }
 

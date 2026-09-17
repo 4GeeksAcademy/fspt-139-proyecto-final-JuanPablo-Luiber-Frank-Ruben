@@ -3,7 +3,7 @@ import useFavorites from "../hooks/useFavorites";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const FILTERS = [
-    {key: "all", Label: "Todos"},
+    {key: "all", label: "Todos"},
     {key: "favorites", label: "Favoritos"},
     {key: "recent", label: "Mas jugados"},
 ];
@@ -21,11 +21,10 @@ function getUserIdFromToken (token) {
 //Endpoints para sacar los juegos del usuario
 
 export const MyGames = () => {
-    const { store } = useGlobalReducer();
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     const [ token, setToken ] = useState(null);
-	const { favorites, toggleFavorite } = useFavorites(token);
+  	const { favorites, toggleFavorite } = useFavorites(token);
     const [ userId, setUserId ] = useState(null);
     const [ userGames, setUserGames ] = useState([]);
     const [ loading, setLoading ] = useState( true );

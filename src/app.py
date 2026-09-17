@@ -31,6 +31,7 @@ CORS(
 )
 
 app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')  # Change this!
+print("JWT SECRET LENGTH:", len(app.config["JWT_SECRET_KEY"]))
 jwt = JWTManager(app)
 
 # database condiguration
