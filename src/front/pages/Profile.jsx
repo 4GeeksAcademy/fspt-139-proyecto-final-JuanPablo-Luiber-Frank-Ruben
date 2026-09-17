@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AlmostCompletedGames } from "../components/AlmostCompletedGames";
 
 
 export const Profile = () => {
@@ -8,6 +9,53 @@ export const Profile = () => {
     const [steamError, setSteamError] = useState("");
     const [syncing, setSyncing] = useState(false);
     const [games, setGames] = useState([]);
+    const [checkingSteam, setCheckingSteam] = useState(true);
+
+
+
+    const loadGames = async () => {
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            setCheckingSteam(false);
+            return;
+        }
+
+        try {
+
+            const payload = JSON.parse(
+                atob(token.split(".")[1])
+            );
+
+            const userId = payload.sub;
+
+            const response = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/users/${userId}/games`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error || "No se pudieron cargar los juegos"
+                );
+            }
+
+            setGames(data.games || []);
+
+        } catch (error) {
+
+            console.error("Error cargando juegos:", error);
+
+        }
+    };
 
 
     useEffect(() => {
@@ -36,10 +84,18 @@ export const Profile = () => {
 
                 if (response.ok && data.linked) {
                     setSteamAccount(data.steam_account);
+
+                    loadGames();
                 }
 
             } catch (error) {
+
                 console.error(error);
+
+            } finally {
+
+                setCheckingSteam(false);
+
             }
         };
 
@@ -269,7 +325,13 @@ export const Profile = () => {
 
             <h1>Mi perfil</h1>
 
-            {!steamAccount ? (
+            {checkingSteam ? (
+
+                <div>
+                    <p>⏳ Comprobando conexión con Steam...</p>
+                </div>
+
+            ) : !steamAccount ? (
 
                 <div>
 
@@ -307,7 +369,9 @@ export const Profile = () => {
                     >
                         {syncing
                             ? "⏳ Sincronizando..."
-                            : "🔄 Sincronizar Steam"
+                            : games.length === 0
+                                ? "🔄 Sincronizar Steam"
+                                : "🔄 Actualizar juegos"
                         }
                     </button>
 
@@ -319,6 +383,10 @@ export const Profile = () => {
                     >
                         ❌ Desvincular Steam
                     </button>
+
+                    {/* CASI COMPLETADOS */}
+
+                    <AlmostCompletedGames />
 
                     {/* JUEGOS */}
                     {games.length > 0 && (
@@ -343,7 +411,7 @@ export const Profile = () => {
 
                                     <p>
                                         Tiempo jugado:{" "}
-                                        {userGame.playtime_forever} minutos
+                                        {Math.floor(userGame.playtime_forever / 60)} horas
                                     </p>
 
                                 </div>
