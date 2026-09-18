@@ -339,3 +339,22 @@ flex: 1;
     justify-content: center;
   }
 }
+
+/* Estilos para el resto de paginas */
+.sv-page {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+.sv-panel {
+  background: var(--bg-3);
+  border-color: var(--border) !important;
+}
+.sv-card {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--border) !important;
+}
+.sv-text-dim {
+  color: var(--text-dim) !important;
+}
