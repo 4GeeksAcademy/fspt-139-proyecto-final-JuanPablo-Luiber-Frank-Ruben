@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import "./Navbar.css";
+import useTheme from "../hooks/useTheme";
 
 function getUserFromToken(token) {
 	try {
@@ -14,6 +14,7 @@ function getUserFromToken(token) {
 export const Navbar = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { theme, toggleTheme } = useTheme();
 	const [token, setToken] = useState(() => localStorage.getItem("token"));
 	const [scrolled, setScrolled] = useState(false);
 	const [menuOpen, setMenuOpen] = useState(false);
@@ -42,14 +43,13 @@ export const Navbar = () => {
 
 	return (
 		<nav className={`sv-navbar${scrolled ? " scrolled" : ""}`}>
-			<div className="sv-navbar-inner">
+			<div className="container d-flex justify-content-between align-items-center">
 				<Link to={token ? "/profile" : "/login"} className="sv-logo">
-					<i className="fa-solid fa-gamepad"></i>
-					STEAM<span>VIEW</span>
+					<i className="fa-solid fa-gamepad"></i>STEAM<span>VIEW</span>
 				</Link>
 
 				<button
-					className="sv-navbar-toggler"
+					className="sv-navbar-toggler d-flex d-lg-none"
 					aria-label="Abrir menú"
 					aria-expanded={menuOpen}
 					onClick={() => setMenuOpen((v) => !v)}
@@ -69,29 +69,32 @@ export const Navbar = () => {
 					)}
 
 					<div className="sv-nav-actions">
+						<button className="sv-theme-toggle" onClick={toggleTheme} title="Cambiar tema">
+							<i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
+						</button>
+
 						{token ? (
-							<>
-								<Link to="/profile" className="sv-user-badge" onClick={closeMenu}>
-									<i className="fa-solid fa-gear"></i>
-									<span>{userName || "Mi cuenta"}</span>
+							<div className="sv-nav-user-area">
+								<Link to="/profile" className="sv-user-name-sm d-none d-sm-inline" onClick={closeMenu}>
+									{userName || "Mi cuenta"}
 								</Link>
-								<button className="btn-sv btn-sv-outline" onClick={handleLogout}>
-									<i className="fa-solid fa-arrow-right-from-bracket"></i> Cerrar sesión
+								<button className="btn btn-sm sv-btn-outline" onClick={handleLogout}>
+									<i className="fa-solid fa-arrow-right-from-bracket"></i> <span className="d-lg-none d-xl-inline">Cerrar sesión</span>
 								</button>
-							</>
+							</div>
 						) : (
-							<>
-								<Link className={`btn-sv btn-sv-ghost ${isActive("/login")}`} to="/login" onClick={closeMenu}>
-									Iniciar sesión
+							<div className="sv-nav-user-area">
+								<Link className={`btn btn-sm sv-btn-ghost ${isActive("/login")}`} to="/login" onClick={closeMenu}>
+									<i className="fa-solid fa-right-to-bracket"></i> <span className="d-lg-none d-xl-inline">Iniciar sesión</span>
 								</Link>
-								<Link className="btn-sv btn-sv-solid" to="/users" onClick={closeMenu}>
-									Crear cuenta
+								<Link className="btn btn-sm sv-btn-outline" to="/users" onClick={closeMenu}>
+									<span className="d-lg-none d-xl-inline">Crear cuenta</span>
 								</Link>
-							</>
+							</div>
 						)}
 					</div>
 				</div>
 			</div>
 		</nav>
 	);
-}
+};
