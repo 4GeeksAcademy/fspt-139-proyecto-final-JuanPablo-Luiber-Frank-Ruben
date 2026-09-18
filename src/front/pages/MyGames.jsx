@@ -129,22 +129,22 @@ export const MyGames = () => {
 	}
 
     return (
-		<div className="bg-dark text-light min-vh-100">
+		<div className="sv-page">
 			<header className="container py-5">
 				<p className="text-uppercase text-danger small mb-1">Biblioteca</p>
 				<h1 className="display-5 fw-bold">Mis juegos</h1>
 
 				<div className="row g-3 mt-3">
 					<div className="col-6 col-md-3">
-						<div className="bg-black bg-opacity-50 border border-secondary rounded p-3 text-center">
+						<div className="sv-panel border rounded p-3 text-center">
 							<div className="fs-3 fw-bold text-danger">{stats.games}</div>
-							<div className="small text-uppercase text-secondary">Juegos</div>
+							<div className="small text-uppercase sv-text-dim">Juegos</div>
 						</div>
 					</div>
 					<div className="col-6 col-md-3">
-						<div className="bg-black bg-opacity-50 border border-secondary rounded p-3 text-center">
+						<div className="sv-panel border rounded p-3 text-center">
 							<div className="fs-3 fw-bold text-danger">{stats.hours.toLocaleString("es-ES")}</div>
-							<div className="small text-uppercase text-secondary">Horas jugadas</div>
+							<div className="small text-uppercase sv-text-dim">Horas jugadas</div>
 						</div>
 					</div>
 				</div>
@@ -152,7 +152,7 @@ export const MyGames = () => {
 
 			{/* parte de añadir juegos */}
 
-            <section className="bg-black bg-opacity-25 border-top border-bottom border-secondary py-4">
+            <section className="sv-panel border-top border-bottom py-4">
 				<div className="container">
 					<h2 className="h5 fw-bold mb-3">Añadir un juego</h2>
 
@@ -197,7 +197,7 @@ export const MyGames = () => {
 						{FILTERS.map((f) => (
 							<button
 								key={f.key}
-								className={`btn btn-sm ${filter === f.key ? "btn-danger" : "btn-outline-light"}`}
+								className={`btn btn-sm ${filter === f.key ? "btn-danger" : "sv-btn-outline"}`}
 								onClick={() => setFilter(f.key)}
 							>
 								{f.label}
@@ -226,11 +226,11 @@ export const MyGames = () => {
 					<div className="row g-3">
 						{filteredGames.map((ug) => (
 							<div className="col-6 col-md-4 col-lg-3" key={ug.id}>
-								<div className="card bg-black text-light border-secondary h-100 position-relative">
+								<div className="card sv-card h-100 position-relative">
 
 									{/*Añadido el boton de favorito*/}
 
-									<button className={`btn btn-sm position-absolute top-0 end-0 m-2 ${favorites.includes(ug.game.appid) ? "btn-warning" : "btn-outline-light"}`}
+									<button className={`btn btn-sm position-absolute top-0 end-0 m-2 ${favorites.includes(ug.game.appid) ? "btn-warning" : "sv-btn-outline"}`}
 										onClick={() => toggleFavorite(ug.game.appid)} title="Marcar favorito">
 										<i className={favorites.includes(ug.game.appid) ? "fa-solid fa-star" : "fa-regular fa-star"}></i>
 									</button>
@@ -243,7 +243,7 @@ export const MyGames = () => {
 									/>
 									<div className="card-body">
 										<h3 className="h6 card-title text-truncate" title={ug.game.name}>{ug.game.name}</h3>
-										<p className="card-text small text-secondary mb-0">
+										<p className="card-text small sv-text-dim mb-0">
 											<i className="fa-regular fa-clock"></i> {Math.round((ug.playtime_forever / 60) * 10) / 10} h jugadas
 										</p>
 									</div>
@@ -254,7 +254,7 @@ export const MyGames = () => {
 				)}
 
 				{!loading && !error && filteredGames.length === 0 && (
-					<p className="text-center text-secondary py-4">
+					<p className="text-center sv-text-dim py-4">
 						{userGames.length === 0 ? "Todavía no tienes juegos. Añade uno arriba." : "No hay juegos que coincidan con este filtro."}
 					</p>
 				)}

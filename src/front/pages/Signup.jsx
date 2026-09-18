@@ -44,7 +44,7 @@ export const Signup = () => {
                 <i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
             </button>
 
-            <div className="sv-auth-brand">
+            <div className="sv-auth-brand d-none d-lg-flex">
                 <Link to="/login" className="sv-logo sv-auth-logo"><i className="fa-solid fa-gamepad"></i>STEAM<span>VIEW</span></Link>
                 <h1 className="sv-auth-brand-title">Crea tu cuenta y <span className="sv-outline">empieza</span></h1>
                 <p className="sv-auth-brand-sub">

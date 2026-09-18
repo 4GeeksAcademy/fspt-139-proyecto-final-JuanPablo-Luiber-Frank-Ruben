@@ -44,7 +44,7 @@ export const Login = () => {
                 <i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
             </button>
 
-            <div className="sv-auth-brand">
+            <div className="sv-auth-brand d-none d-lg-flex">
                 <Link to="/login" className="sv-logo sv-auth-logo"><i className="fa-solid fa-gamepad"></i>STEAM<span>VIEW</span></Link>
                 <h1 className="sv-auth-brand-title">Tu perfil de <span className="sv-outline">Steam</span>, a fondo</h1>
                 <p className="sv-auth-brand-sub">

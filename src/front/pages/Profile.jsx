@@ -44,7 +44,7 @@ export const Profile = () => {
 
             if (!response.ok) {
                 throw new Error(
-                    data.error || "No se pudieron cargar los juegos"
+                    data.error || data.msg || "No se pudieron cargar los juegos"
                 );
             }
 
@@ -159,7 +159,7 @@ export const Profile = () => {
             if (!response.ok) {
 
                 setSteamError(
-                    data.error || "No se pudo conectar con Steam"
+                    data.error || data.msg || "No se pudo conectar con Steam"
                 );
 
                 return;
@@ -215,7 +215,7 @@ export const Profile = () => {
             if (!response.ok) {
 
                 setSteamError(
-                    data.error ||
+                    data.error || data.msg ||
                     "No se pudo desvincular Steam"
                 );
 
@@ -278,7 +278,7 @@ export const Profile = () => {
             if (!response.ok) {
 
                 setSteamError(
-                    data.error ||
+                    data.error || data.msg ||
                     "No se pudieron sincronizar los juegos"
                 );
 
