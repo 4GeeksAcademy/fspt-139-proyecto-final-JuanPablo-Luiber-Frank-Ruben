@@ -1,0 +1,23 @@
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+.sv-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: 0.02em;
+  color: var(--text) !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+}
+.sv-logo i {
+  color: var(--accent);
+}
+.sv-logo span {
+  color: var(--accent);
+}
