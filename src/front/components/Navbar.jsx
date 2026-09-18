@@ -1,86 +1,97 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import "./Navbar.css";
+
+function getUserFromToken(token) {
+	try {
+		const payload = JSON.parse(atob(token.split(".")[1]));
+		return payload.nickname || payload.name || payload.email || null;
+	} catch {
+		return null;
+	}
+}
 
 export const Navbar = () => {
-
 	const navigate = useNavigate();
 	const location = useLocation();
-	const [token, setToken] = useState(() => localStorage.getItem("token"))
+	const [token, setToken] = useState(() => localStorage.getItem("token"));
+	const [scrolled, setScrolled] = useState(false);
+	const [menuOpen, setMenuOpen] = useState(false);
 
 	useEffect(() => {
 		setToken(localStorage.getItem("token"));
 	}, [location]);
 
+	useEffect(() => {
+		const onScroll = () => setScrolled(window.scrollY > 30);
+		window.addEventListener("scroll", onScroll);
+		onScroll();
+		return () => window.removeEventListener("scroll", onScroll);
+	}, []);
+
+	const userName = token ? getUserFromToken(token) : null;
+	const isActive = (path) => (location.pathname === path ? "active" : "");
+	const closeMenu = () => setMenuOpen(false);
+
 	const handleLogout = () => {
 		localStorage.removeItem("token");
 		setToken(null);
+		closeMenu();
 		navigate("/login");
 	};
 
-	const isActive = (path) => (location.pathname === path ? "active" : "");
-
 	return (
-
-		<nav className = "navbar navbar-expand-lg navbar-dar bg-dark">
-			<div className = "container">
-				
-				<Link to={token ? "/profile" : "/login"} className="navbar-brand d-flex align-items-center gap-2">
-					<i className="fa-solid fa-trophy"></i>
-					<span>Trophy <strong className="text-primary">Hunter</strong></span>
+		<nav className={`sv-navbar${scrolled ? " scrolled" : ""}`}>
+			<div className="sv-navbar-inner">
+				<Link to={token ? "/profile" : "/login"} className="sv-logo">
+					<i className="fa-solid fa-gamepad"></i>
+					STEAM<span>VIEW</span>
 				</Link>
 
-				<button	className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-					aria-controls="navbarNav" aria-expanded="false" aria-label="Abrir menú">
-					
-					<span className="navbar-toggler-icon"></span>
-
+				<button
+					className="sv-navbar-toggler"
+					aria-label="Abrir menú"
+					aria-expanded={menuOpen}
+					onClick={() => setMenuOpen((v) => !v)}
+				>
+					<i className={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`}></i>
 				</button>
 
-				<div className="collapse navbar-collapse" id="navbarNav">
-
+				<div className={`sv-nav-collapse${menuOpen ? " show" : ""}`}>
 					{token && (
-						
-						<ul className="navbar-nav me-auto">
-							<li className="nav-item">
-								<Link className={`nav-link ${isActive("/profile")}`} to="/profile">
-								<i className="fa-solid fa-user me-1"></i> Perfil
-								</Link>
-							</li>
-							<li className="nav-item">
-								<Link className={`nav-link ${isActive("/games")}`} to="/games">
-									<i className="fa-solid fa-gamepad me-1"></i> Mis juegos
-								</Link>
-							</li>
+						<ul className="sv-nav-links">
+							<li><Link className={isActive("/profile")} to="/profile" onClick={closeMenu}>Perfil</Link></li>
+							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Juegos</Link></li> {/* TODO: crear ruta de exploración de juegos */}
+							<li><Link className={isActive("/games")} to="/games" onClick={closeMenu}>Mis juegos</Link></li>
+							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Logros</Link></li> {/* TODO: crear ruta /achievements */}
+							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Amigos</Link></li> {/* TODO: crear ruta /friends */}
 						</ul>
 					)}
 
-					<ul className="navbar-nav ms-auto">
+					<div className="sv-nav-actions">
 						{token ? (
-							<li className="nav-item">
-								<button className="btn btn-outline-light btn-sm" onClick={handleLogout}>
-									<i className="fa-solid fa-arrow-right-from-bracket me-1"></i> Cerrar sesión
+							<>
+								<Link to="/profile" className="sv-user-badge" onClick={closeMenu}>
+									<i className="fa-solid fa-gear"></i>
+									<span>{userName || "Mi cuenta"}</span>
+								</Link>
+								<button className="btn-sv btn-sv-outline" onClick={handleLogout}>
+									<i className="fa-solid fa-arrow-right-from-bracket"></i> Cerrar sesión
 								</button>
-							</li>
+							</>
 						) : (
 							<>
-								<li className="nav-item">
-									<Link className={`nav-link ${isActive("/login")}`} to="/login">
-										Iniciar sesión
-									</Link>
-								</li>
-								<li className="nav-item">
-									<Link className="btn btn-primary btn-sm ms-lg-2" to="/users">
-										Crear cuenta
-									</Link>
-								</li>
+								<Link className={`btn-sv btn-sv-ghost ${isActive("/login")}`} to="/login" onClick={closeMenu}>
+									Iniciar sesión
+								</Link>
+								<Link className="btn-sv btn-sv-solid" to="/users" onClick={closeMenu}>
+									Crear cuenta
+								</Link>
 							</>
 						)}
-					</ul>
-
+					</div>
 				</div>
 			</div>
 		</nav>
-
-	)
-
-};
+	);
+}
