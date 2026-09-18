@@ -61,7 +61,6 @@ export const Navbar = () => {
 					{token && (
 						<ul className="sv-nav-links">
 							<li><Link className={isActive("/profile")} to="/profile" onClick={closeMenu}>Perfil</Link></li>
-							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Juegos</Link></li> {/* TODO: crear ruta de exploración de juegos */}
 							<li><Link className={isActive("/games")} to="/games" onClick={closeMenu}>Mis juegos</Link></li>
 							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Logros</Link></li> {/* TODO: crear ruta /achievements */}
 							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Amigos</Link></li> {/* TODO: crear ruta /friends */}
