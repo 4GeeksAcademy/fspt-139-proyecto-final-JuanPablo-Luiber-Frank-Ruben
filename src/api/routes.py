@@ -2,13 +2,14 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
-from api.models import db, User, Game, UserGame, SteamAccount, Favorite
+from api.models import db, User, Game, UserGame, SteamAccount, Favorite, Achievement, UserAchievement
 from api.utils import generate_sitemap, APIException
 from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
 import os
+from datetime import datetime
 
 api = Blueprint('api', __name__)
 
@@ -289,6 +290,138 @@ def steam_login():
     }), 200
 
 
+
+
+
+
+
+
+
+
+def sync_game_achievements(user_id, game, achievements):
+    unlocked_achievements = 0
+
+    for steam_achievement in achievements:
+
+        mapped_achievement = map_steam_achievement(
+            steam_achievement
+        )
+
+        achievement_name = mapped_achievement.get("name")
+
+        if not achievement_name:
+            continue
+
+        unlocked = mapped_achievement.get(
+            "unlocked",
+            False
+        )
+
+        unlocked_timestamp = mapped_achievement.get(
+            "unlocked_at"
+        )
+
+        # ==========================================
+        # BUSCAR O CREAR ACHIEVEMENT
+        # ==========================================
+
+        achievement = db.session.execute(
+            db.select(Achievement).where(
+                Achievement.game_id == game.id,
+                Achievement.name == achievement_name
+            )
+        ).scalar_one_or_none()
+
+        if not achievement:
+
+            achievement = Achievement(
+                name=achievement_name,
+                description=mapped_achievement.get(
+                    "description"
+                ),
+                image_url=mapped_achievement.get(
+                    "icon"
+                ),
+                game_id=game.id
+            )
+
+            db.session.add(achievement)
+            db.session.flush()
+
+        # ==========================================
+        # BUSCAR O CREAR USER_ACHIEVEMENT
+        # ==========================================
+
+        user_achievement = db.session.execute(
+            db.select(UserAchievement).where(
+                UserAchievement.user_id == user_id,
+                UserAchievement.achievement_id == achievement.id
+            )
+        ).scalar_one_or_none()
+
+        if not user_achievement:
+
+            user_achievement = UserAchievement(
+                user_id=user_id,
+                achievement_id=achievement.id,
+                unlocked=unlocked
+            )
+
+            db.session.add(user_achievement)
+
+        else:
+
+            user_achievement.unlocked = unlocked
+
+        # ==========================================
+        # GUARDAR FECHA DE DESBLOQUEO
+        # ==========================================
+
+        if unlocked and unlocked_timestamp:
+
+            user_achievement.unlocked_at = (
+                datetime.fromtimestamp(
+                    unlocked_timestamp
+                ).date()
+            )
+
+        else:
+
+            user_achievement.unlocked_at = None
+
+        # ==========================================
+        # CONTAR DESBLOQUEADOS
+        # ==========================================
+
+        if unlocked:
+            unlocked_achievements += 1
+
+    # ==========================================
+    # ESTADÍSTICAS
+    # ==========================================
+
+    total_achievements = len(achievements)
+
+    if total_achievements > 0:
+
+        percentage = (
+            unlocked_achievements /
+            total_achievements
+        ) * 100
+
+    else:
+
+        percentage = 0
+
+    return (
+        total_achievements,
+        unlocked_achievements,
+        round(percentage, 2)
+    )
+
+
+
+
 @api.route("/steam/sync", methods=["POST"])
 @jwt_required()
 def sync_steam():
@@ -402,37 +535,39 @@ def sync_steam():
             appid
         )
 
+        if achievement_error:
+            continue
+
+
         # ==========================================
-        # 7. GUARDAR ESTADÍSTICAS DE LOGROS
+        # 7. GUARDAR / ACTUALIZAR LOGROS
         # ==========================================
 
-        if achievement_error or not achievements:
+        if achievements:
+
+            (
+                total_achievements,
+                unlocked_achievements,
+                percentage
+            ) = sync_game_achievements(
+                user_id,
+                game,
+                achievements
+            )
+
+            user_game.achievements_total = total_achievements
+
+            user_game.achievements_unlocked = (
+                unlocked_achievements
+            )
+
+            user_game.achievement_percentage = percentage
+
+        else:
 
             user_game.achievements_total = 0
             user_game.achievements_unlocked = 0
             user_game.achievement_percentage = 0
-
-        else:
-
-            total_achievements = len(achievements)
-
-            unlocked_achievements = sum(
-                1
-                for achievement in achievements
-                if achievement.get("unlocked") is True
-            )
-
-            percentage = (
-                unlocked_achievements /
-                total_achievements
-            ) * 100
-
-            user_game.achievements_total = total_achievements
-            user_game.achievements_unlocked = unlocked_achievements
-            user_game.achievement_percentage = round(
-                percentage,
-                2
-            )
 
     # ==========================================
     # 8. GUARDAR CAMBIOS

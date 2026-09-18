@@ -115,6 +115,10 @@ class SteamAccount(db.Model):
     }
 
 class UserGame(db.Model):
+    __table_args__ = (
+        UniqueConstraint("user_id","game_id",name="uq_user_game"),
+    )
+    
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
     game_id: Mapped[int] = mapped_column(ForeignKey("game.id"), nullable=False)
