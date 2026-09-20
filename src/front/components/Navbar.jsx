@@ -62,7 +62,7 @@ export const Navbar = () => {
 						<ul className="sv-nav-links">
 							<li><Link className={isActive("/profile")} to="/profile" onClick={closeMenu}>Perfil</Link></li>
 							<li><Link className={isActive("/games")} to="/games" onClick={closeMenu}>Mis juegos</Link></li>
-							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Logros</Link></li> {/* TODO: crear ruta /achievements */}
+							<li><Link className={isActive("/achievements")} to="/achievements" onClick={closeMenu}>Logros</Link></li>
 							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Amigos</Link></li> {/* TODO: crear ruta /friends */}
 						</ul>
 					)}
