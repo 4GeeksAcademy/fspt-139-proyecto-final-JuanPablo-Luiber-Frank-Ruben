@@ -64,7 +64,7 @@ export const MyGames = () => {
     useEffect(loadGames, [token, userId]);
 
     const filteredGames = useMemo(() => {
-		let result = userGames;
+		let result = [...userGames].sort((a, b) => b.playtime_forever - a.playtime_forever);
 		if ( filter === "recent" ) result = [...result].sort((a, b) => b.playtime_forever - a.playtime_forever);
 		if ( search.trim()) {
 			const q = search.trim().toLowerCase();
@@ -72,7 +72,7 @@ export const MyGames = () => {
 		}
 		if (filter === "favorites") result = result.filter((ug) => favorites.includes(ug.game.appid));
 		return result;
-	}, [ userGames, filter, search, favorites ]).sort((a, b) => b.playtime_forever - a.playtime_forever);;
+	}, [ userGames, filter, search, favorites ]);
 
 	const stats = useMemo(() => {
 		const totalMinutes = userGames.reduce(( sum, ug ) => sum + ( ug.playtime_forever || 0 ), 0 );
@@ -239,7 +239,8 @@ export const MyGames = () => {
 										src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${ug.game.appid}/header.jpg`}
 										className="card-img-top"
 										alt={ug.game.name}
-										
+										loading="lazy"
+										onError={(e) => { e.target.style.opacity = 0; }}
 									/>
 									<div className="card-body">
 										<h3 className="h6 card-title text-truncate" title={ug.game.name}>{ug.game.name}</h3>
