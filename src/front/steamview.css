@@ -358,3 +358,170 @@ flex: 1;
 .sv-text-dim {
   color: var(--text-dim) !important;
 }
+
+/* ============ FRIENDS CHAT DOCK ============ */
+.sv-fchat-dock {
+  position: fixed;
+  bottom: 0;
+  right: 20px;
+  z-index: 60;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.sv-fchat-launcher-wrap {
+  position: relative;
+}
+
+.sv-fchat-launcher {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.2rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.sv-fchat-list {
+  position: absolute;
+  bottom: 68px;
+  right: 0;
+  width: 260px;
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.sv-fchat-list-header {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sv-fchat-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 0;
+}
+
+.sv-fchat-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.sv-fchat-list li:hover {
+  background: var(--bg-3);
+}
+
+.sv-fchat-list li img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sv-fchat-card {
+  width: 280px;
+  max-height: 380px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.sv-fchat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--accent);
+  color: #fff;
+}
+
+.sv-fchat-card-header img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sv-fchat-card-header span {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sv-fchat-card-header button {
+  background: none;
+  border: none;
+  color: #fff;
+  opacity: 0.85;
+  cursor: pointer;
+}
+.sv-fchat-card-header button:hover { opacity: 1; }
+
+.sv-fchat-card-body {
+  padding: 0.6rem;
+  overflow-y: auto;
+}
+
+.sv-fchat-achievement {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+.sv-fchat-achievement:last-child { border-bottom: none; }
+
+.sv-fchat-achievement img {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sv-fchat-achievement-name {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.sv-fchat-achievement-date {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.sv-fchat-empty {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+@media (max-width: 600px) {
+  .sv-fchat-card, .sv-fchat-list { width: calc(100vw - 40px); }
+}
