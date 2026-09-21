@@ -1,0 +1,258 @@
+/* ==========================================
+   PROFILE
+========================================== */
+
+.profile-page {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+}
+
+
+/* ==========================================
+   HEADER
+========================================== */
+
+.profile-label {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+}
+
+.profile-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2rem, 4vw, 3rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.profile-subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
+
+
+/* ==========================================
+   CARDS
+========================================== */
+
+.profile-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.5rem;
+}
+
+
+/* ==========================================
+   SECTION TITLES
+========================================== */
+
+.profile-section-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.25rem;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+}
+
+
+/* ==========================================
+   TEXT
+========================================== */
+
+.profile-info {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+}
+
+.profile-accent {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+.profile-steam-id {
+    color: var(--text);
+    font-family: var(--font-mono);
+}
+
+
+/* ==========================================
+   BUTTONS
+========================================== */
+
+.profile-btn {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.7rem 1.2rem;
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+.profile-btn:hover {
+    background: transparent;
+    color: var(--accent);
+}
+
+.profile-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.profile-btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.7rem 1.2rem;
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+.profile-btn-outline:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.profile-btn-outline:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+/* ==========================================
+   GAMES
+========================================== */
+
+.profile-games {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.profile-game {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1rem 1.2rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    transition:
+        border-color 0.15s,
+        transform 0.15s;
+}
+
+.profile-game:hover {
+    border-color: rgba(255, 0, 106, 0.4);
+    transform: translateX(3px);
+}
+
+.profile-game-name {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 0 0 0.25rem;
+}
+
+.profile-game-time {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin: 0;
+}
+
+
+/* ==========================================
+   MENSAJES
+========================================== */
+
+.profile-message {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+.profile-message-success {
+    background: rgba(0, 255, 150, 0.08);
+    border: 1px solid rgba(0, 255, 150, 0.25);
+    color: #5fffc0;
+}
+
+.profile-message-error {
+    background: rgba(255, 0, 106, 0.1);
+    border: 1px solid rgba(255, 0, 106, 0.4);
+    color: var(--accent-2);
+}
+
+
+/* ==========================================
+   LOADING
+========================================== */
+
+.profile-spinner {
+    width: 42px;
+    height: 42px;
+
+    border: 3px solid var(--bg-3);
+    border-top-color: var(--accent);
+
+    border-radius: 50%;
+
+    animation: profile-spin 0.8s linear infinite;
+
+    margin: 0 auto 1rem;
+}
+
+@keyframes profile-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 576px) {
+
+    .profile-page {
+        padding-top: 1rem;
+    }
+
+    .profile-card {
+        padding: 1rem;
+    }
+
+    .profile-title {
+        font-size: 2rem;
+    }
+
+    .profile-btn,
+    .profile-btn-outline {
+        width: 100%;
+    }
+
+}

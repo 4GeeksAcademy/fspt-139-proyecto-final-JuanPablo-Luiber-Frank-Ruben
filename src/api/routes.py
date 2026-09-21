@@ -497,6 +497,10 @@ def sync_steam():
             db.session.add(game)
             db.session.flush()
 
+        else:
+            game.name = name
+            game.img_icon_url = game_data.get("img_icon_url")
+
         # ==========================================
         # 4. BUSCAR O CREAR USER_GAME
         # ==========================================
@@ -915,7 +919,7 @@ def get_almost_completed_games():
         # Filtrar juegos casi completados
         # ------------------------------------------
 
-        if percentage >= ALMOST_COMPLETED_THRESHOLD:
+        if percentage >= ALMOST_COMPLETED_THRESHOLD and percentage < 100:
 
             almost_completed.append({
                 "appid": user_game.game.appid,
@@ -924,7 +928,7 @@ def get_almost_completed_games():
                 "achievements_unlocked": user_game.achievements_unlocked,
                 "achievements_total": user_game.achievements_total,
                 "playtime_forever": user_game.playtime_forever,
-                "completed": percentage == 100
+                "completed": False
             })
 
 

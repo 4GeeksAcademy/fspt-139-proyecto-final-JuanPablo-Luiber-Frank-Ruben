@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlmostCompletedGames } from "../components/AlmostCompletedGames";
+import "./profile.css";
 
 
 export const Profile = () => {
@@ -44,7 +45,7 @@ export const Profile = () => {
 
             if (!response.ok) {
                 throw new Error(
-                    data.error || "No se pudieron cargar los juegos"
+                    data.error || data.msg || "No se pudieron cargar los juegos"
                 );
             }
 
@@ -159,7 +160,7 @@ export const Profile = () => {
             if (!response.ok) {
 
                 setSteamError(
-                    data.error || "No se pudo conectar con Steam"
+                    data.error || data.msg || "No se pudo conectar con Steam"
                 );
 
                 return;
@@ -215,7 +216,7 @@ export const Profile = () => {
             if (!response.ok) {
 
                 setSteamError(
-                    data.error ||
+                    data.error || data.msg ||
                     "No se pudo desvincular Steam"
                 );
 
@@ -278,7 +279,7 @@ export const Profile = () => {
             if (!response.ok) {
 
                 setSteamError(
-                    data.error ||
+                    data.error || data.msg ||
                     "No se pudieron sincronizar los juegos"
                 );
 
@@ -321,126 +322,244 @@ export const Profile = () => {
 
 
     return (
-        <div>
+        <div className="profile-page">
 
-            <h1>Mi perfil</h1>
+            <div className="container py-5">
 
-            {checkingSteam ? (
+                {/* TÍTULO */}
+                <div className="mb-4">
+                    <div className="profile-label">TROPHY HUNTER</div>
 
-                <div>
-                    <p>⏳ Comprobando conexión con Steam...</p>
+                    <h1 className="profile-title">
+                        Mi perfil
+                    </h1>
+
+                    <p className="profile-subtitle">
+                        Gestiona tu cuenta de Steam y tus juegos
+                    </p>
                 </div>
 
-            ) : !steamAccount ? (
 
-                <div>
+                {checkingSteam ? (
 
-                    <h3>🎮 Steam</h3>
+                    /* ==============================
+                       COMPROBANDO STEAM
+                    ============================== */
 
-                    <p>
-                        Tu cuenta de Steam no está vinculada.
-                    </p>
+                    <div className="profile-card text-center">
+                        <div className="profile-spinner"></div>
 
-                    <button onClick={connectSteam}>
-                        🎮 Vincular Steam
-                    </button>
+                        <p className="profile-info">
+                            Comprobando conexión con Steam...
+                        </p>
+                    </div>
 
-                </div>
 
-            ) : (
+                ) : !steamAccount ? (
 
-                <div>
+                    /* ==============================
+                       STEAM NO CONECTADO
+                    ============================== */
 
-                    <h3>
-                        ✅ Steam conectada
-                    </h3>
+                    <div className="profile-card">
 
-                    <p>
-                        Steam ID:{" "}
-                        {hideSteamId(
-                            steamAccount.steam_id
-                        )}
-                    </p>
+                        <div className="profile-section-title">
+                            🎮 Steam
+                        </div>
 
-                    {/* BOTÓN SINCRONIZAR */}
-                    <button
-                        onClick={syncSteam}
-                        disabled={syncing}
-                    >
-                        {syncing
-                            ? "⏳ Sincronizando..."
-                            : games.length === 0
-                                ? "🔄 Sincronizar Steam"
-                                : "🔄 Actualizar juegos"
-                        }
-                    </button>
+                        <p className="profile-info">
+                            Tu cuenta de Steam no está vinculada.
+                        </p>
 
-                    {" "}
+                        <button
+                            className="profile-btn"
+                            onClick={connectSteam}
+                        >
+                            🎮 Vincular Steam
+                        </button>
 
-                    <button
-                        onClick={unlinkSteam}
-                        disabled={syncing}
-                    >
-                        ❌ Desvincular Steam
-                    </button>
+                    </div>
 
-                    {/* CASI COMPLETADOS */}
 
-                    <AlmostCompletedGames />
+                ) : (
 
-                    {/* JUEGOS */}
-                    {games.length > 0 && (
+                    /* ==============================
+                       STEAM CONECTADO
+                    ============================== */
 
-                        <div>
+                    <>
 
-                            <h3>
-                                🎮 Mis juegos
-                            </h3>
+                        {/* INFORMACIÓN STEAM */}
 
-                            <p>
-                                Juegos sincronizados: {games.length}
-                            </p>
+                        <div className="profile-card mb-4">
 
-                            {games.map((userGame) => (
+                            <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
-                                <div key={userGame.id}>
+                                <div>
 
-                                    <h4>
-                                        {userGame.game.name}
-                                    </h4>
+                                    <div className="profile-section-title">
+                                        ✅ Steam conectada
+                                    </div>
 
-                                    <p>
-                                        Tiempo jugado:{" "}
-                                        {Math.floor(userGame.playtime_forever / 60)} horas
+                                    <p className="profile-info mb-0">
+                                        Steam ID:{" "}
+                                        <span className="profile-steam-id">
+                                            {hideSteamId(
+                                                steamAccount.steam_id
+                                            )}
+                                        </span>
                                     </p>
 
                                 </div>
 
-                            ))}
+
+                                <div className="d-flex gap-2 flex-wrap">
+
+                                    {/* SINCRONIZAR */}
+
+                                    <button
+                                        className="profile-btn"
+                                        onClick={syncSteam}
+                                        disabled={syncing}
+                                    >
+                                        {syncing
+                                            ? "⏳ Sincronizando..."
+                                            : games.length === 0
+                                                ? "🔄 Sincronizar Steam"
+                                                : "🔄 Actualizar juegos"
+                                        }
+                                    </button>
+
+
+                                    {/* DESVINCULAR */}
+
+                                    <button
+                                        className="profile-btn-outline"
+                                        onClick={unlinkSteam}
+                                        disabled={syncing}
+                                    >
+                                        ❌ Desvincular Steam
+                                    </button>
+
+                                </div>
+
+                            </div>
 
                         </div>
 
-                    )}
 
-                </div>
+                        {/* CASI COMPLETADOS */}
 
-            )}
+                        <div className="profile-card mb-4">
 
-            {steamMessage && (
+                            <div className="profile-section-title">
+                                🏆 Casi completados
+                            </div>
 
-                <p>
-                    ✅ {steamMessage}
-                </p>
+                            <AlmostCompletedGames />
 
-            )}
+                        </div>
 
-            {steamError && (
 
-                <p>
-                    ❌ {steamError}
-                </p>
+                        {/* JUEGOS */}
 
-            )}
+                        {games.length > 0 && (
+
+                            <div className="profile-card">
+
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+
+                                    <div>
+
+                                        <div className="profile-section-title">
+                                            🎮 Mis juegos
+                                        </div>
+
+                                        <p className="profile-info mb-0">
+                                            Juegos sincronizados:{" "}
+                                            <span className="profile-accent">
+                                                {games.length}
+                                            </span>
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div className="profile-games">
+
+                                    {games
+                                        .slice()
+                                        .sort(
+                                            (a, b) =>
+                                                b.playtime_forever -
+                                                a.playtime_forever
+                                        )
+                                        .map((userGame) => (
+
+                                            <div
+                                                className="profile-game"
+                                                key={userGame.id}
+                                            >
+
+                                                <div>
+
+                                                    <h4 className="profile-game-name">
+                                                        {userGame.game.name}
+                                                    </h4>
+
+                                                    <p className="profile-game-time">
+                                                        🕐{" "}
+                                                        {Math.floor(
+                                                            userGame.playtime_forever / 60
+                                                        )}{" "}
+                                                        horas jugadas
+                                                    </p>
+
+                                                </div>
+
+                                            </div>
+
+                                        ))}
+
+                                </div>
+
+                            </div>
+
+                        )}
+
+                    </>
+
+                )}
+
+
+                {/* MENSAJE DE ÉXITO */}
+
+                {steamMessage && (
+
+                    <div className="profile-message profile-message-success">
+
+                        ✅ {steamMessage}
+
+                    </div>
+
+                )}
+
+
+                {/* MENSAJE DE ERROR */}
+
+                {steamError && (
+
+                    <div className="profile-message profile-message-error">
+
+                        ❌ {steamError}
+
+                    </div>
+
+                )}
+
+            </div>
 
         </div>
     );
