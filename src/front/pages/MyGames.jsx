@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import useFavorites from "../hooks/useFavorites";
-import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const FILTERS = [
     {key: "all", label: "Todos"},
@@ -25,7 +24,7 @@ export const MyGames = () => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     const [ token, setToken ] = useState(null);
-  	const { favorites, toggleFavorite } = useFavorites(token);
+	const { favorites, toggleFavorite } = useFavorites(token);
     const [ userId, setUserId ] = useState(null);
     const [ userGames, setUserGames ] = useState([]);
     const [ loading, setLoading ] = useState( true );
@@ -73,7 +72,7 @@ export const MyGames = () => {
 		}
 		if (filter === "favorites") result = result.filter((ug) => favorites.includes(ug.game.appid));
 		return result;
-	}, [ userGames, filter, search, favorites ]);
+	}, [ userGames, filter, search, favorites ]).sort((a, b) => b.playtime_forever - a.playtime_forever);;
 
 	const stats = useMemo(() => {
 		const totalMinutes = userGames.reduce(( sum, ug ) => sum + ( ug.playtime_forever || 0 ), 0 );
@@ -237,10 +236,10 @@ export const MyGames = () => {
 									</button>
 
 									<img
-										src={ug.game.img_icon_url || `https://cdn.cloudflare.steamstatic.com/steam/apps/${ug.game.appid}/header.jpg`}
+										src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${ug.game.appid}/header.jpg`}
 										className="card-img-top"
 										alt={ug.game.name}
-										onError={(e) => { e.target.style.opacity = 0; }}
+										
 									/>
 									<div className="card-body">
 										<h3 className="h6 card-title text-truncate" title={ug.game.name}>{ug.game.name}</h3>

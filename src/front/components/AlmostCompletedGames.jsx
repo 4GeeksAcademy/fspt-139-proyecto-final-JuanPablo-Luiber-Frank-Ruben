@@ -186,7 +186,7 @@ export const AlmostCompletedGames = () => {
                                 <button
                                     className="btn btn-danger mt-3"
                                     onClick={() =>
-                                        navigate(`/single/${game.appid}`)
+                                        navigate(`/achievements?appid=${game.appid}`)
                                     }
                                 >
                                     Ver juego

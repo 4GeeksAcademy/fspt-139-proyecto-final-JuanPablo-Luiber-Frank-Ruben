@@ -30,7 +30,6 @@ export const router = createBrowserRouter(
         <Route path="/" element={<Login />} errorElement={<h1>Not found!</h1>} />
         <Route path="/login" element={<Login />} />
         <Route path="/users" element={<Signup />} />
-
         {/* Root Route: The rest of the app keeps the Navbar and Footer through the Layout. */}
         <Route element={<Layout />} errorElement={<h1>Not found!</h1>} >
           <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
@@ -40,6 +39,7 @@ export const router = createBrowserRouter(
             <Route path="/games" element={<MyGames />} />
             <Route path="/achievements" element={<Achievements />} />
           </Route>
+          <Route path="/achievements/:appid" element={<Achievements />} />
           <Route path="/404" element={<NotFound />} />
         </Route>
       </>

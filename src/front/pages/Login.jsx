@@ -44,12 +44,11 @@ export const Login = () => {
                 <i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
             </button>
 
-            <div className="sv-auth-brand d-none d-lg-flex">
-                <Link to="/login" className="sv-logo sv-auth-logo"><i className="fa-solid fa-gamepad"></i>STEAM<span>VIEW</span></Link>
-                <h1 className="sv-auth-brand-title">Tu perfil de <span className="sv-outline">Steam</span>, a fondo</h1>
+            <div className="sv-auth-brand">
+                <Link to="/login" className="sv-logo sv-auth-logo"><i className="fa-solid fa-gamepad"></i>TROPHY<span>HUNTER</span></Link>
+                <h1 className="sv-auth-brand-title">WELCOME <span className="sv-outline">HUNTER</span> </h1>
                 <p className="sv-auth-brand-sub">
-                    Vincula tu cuenta real de Steam y consulta tu biblioteca de juegos,
-                    el progreso de tus logros y la actividad de tus amigos.
+                    Aquí tendrás todos los trofeos obtenibles en tus juegos reunidos en un solo lugar. ¡Que la cacería empiece!
                 </p>
                 <ul className="sv-auth-brand-list list-unstyled">
                     <li><i className="fa-solid fa-gamepad"></i> Tu biblioteca real, sincronizada desde Steam</li>
