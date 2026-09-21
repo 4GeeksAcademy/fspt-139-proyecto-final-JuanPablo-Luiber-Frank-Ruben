@@ -36,7 +36,7 @@ export const router = createBrowserRouter(
         <Route path="/users" element={<Signup />} />
         <Route element={<ProtectedRoutes />} >
           <Route path="/profile" element={<Profile />} />
-          <Route path="/games" element={<MyGames />} />
+          <Route path="/games" element={< MyGames/>} />
         </Route>
         <Route path="/404" element={<NotFound />} />
       </Route>

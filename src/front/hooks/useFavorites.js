@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 
 export default function useFavorites(token) {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
-    const [ Favorites, setFavorites ] =  useState([]);
+    const [ favorites, setFavorites ] =  useState([]);
 
     useEffect(() => {
         if (!token) {
@@ -10,8 +10,8 @@ export default function useFavorites(token) {
             return;
         }
 
-        fetch('${backendURL¡¡rl}/api/favorites', {
-            headers: { Authorization: 'Bearer ${token}' },
+        fetch(`${backendUrl}/api/favorites`, {
+            headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
 			.then((data) => setFavorites(data.favorites || []))

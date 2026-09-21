@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import useFavorites from "../hooks/useFavorites";
-import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const FILTERS = [
     {key: "all", label: "Todos"},
@@ -239,7 +238,8 @@ export const MyGames = () => {
 										src={ug.game.img_icon_url || `https://cdn.cloudflare.steamstatic.com/steam/apps/${ug.game.appid}/header.jpg`}
 										className="card-img-top"
 										alt={ug.game.name}
-										onError={(e) => { e.target.style.opacity = 0; }}
+										onError={(e) => { console.log("ERROR IMAGEN:", ug.game.name);
+        												  console.log("URL:", e.target.src);}}
 									/>
 									<div className="card-body">
 										<h3 className="h6 card-title text-truncate" title={ug.game.name}>{ug.game.name}</h3>
