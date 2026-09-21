@@ -9,6 +9,7 @@ import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
 import { Single } from "./pages/Single";
 import { Demo } from "./pages/Demo";
+import { Achievements } from "./pages/Achievements";
 import { Navbar } from "./components/Navbar";
 import { Profile } from "./pages/Profile";
 import { Login } from "./pages/Login";
@@ -37,6 +38,7 @@ export const router = createBrowserRouter(
           <Route element={<ProtectedRoutes />} >
             <Route path="/profile" element={<Profile />} />
             <Route path="/games" element={<MyGames />} />
+            <Route path="/achievements" element={<Achievements />} />
           </Route>
           <Route path="/404" element={<NotFound />} />
         </Route>

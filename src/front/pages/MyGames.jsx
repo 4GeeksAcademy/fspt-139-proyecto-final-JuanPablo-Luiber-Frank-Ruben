@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import useFavorites from "../hooks/useFavorites";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
@@ -246,6 +247,9 @@ export const MyGames = () => {
 										<p className="card-text small sv-text-dim mb-0">
 											<i className="fa-regular fa-clock"></i> {Math.round((ug.playtime_forever / 60) * 10) / 10} h jugadas
 										</p>
+										<Link to={`/achievements?appid=${ug.game.appid}`} className="btn btn-sm sv-btn-outline mt-2">
+											<i className="fa-solid fa-trophy"></i> Ver logros
+										</Link>
 									</div>
 								</div>
 							</div>
