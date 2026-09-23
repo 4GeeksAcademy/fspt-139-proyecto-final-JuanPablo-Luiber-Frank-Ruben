@@ -45,7 +45,7 @@ export const Signup = () => {
             </button>
 
             <div className="sv-auth-brand d-none d-lg-flex">
-                <Link to="/login" className="sv-logo sv-auth-logo"><i className="fa-solid fa-gamepad"></i>STEAM<span>VIEW</span></Link>
+                <Link to="/login" className="sv-logo sv-auth-logo"><i className="fa-solid fa-gamepad"></i>TROPHY<span>HUNTER</span></Link>
                 <h1 className="sv-auth-brand-title">Crea tu cuenta y <span className="sv-outline">empieza</span></h1>
                 <p className="sv-auth-brand-sub">
                     Regístrate primero con tu email; una vez dentro podrás vincular tu
@@ -61,7 +61,7 @@ export const Signup = () => {
             <div className="sv-auth-panel">
                 <div className="sv-auth-card">
                     <div className="d-flex justify-content-between align-items-center d-lg-none sv-auth-logo">
-                        <Link to="/login" className="sv-logo mb-0"><i className="fa-solid fa-gamepad"></i>STEAM<span>VIEW</span></Link>
+                        <Link to="/login" className="sv-logo mb-0"><i className="fa-solid fa-gamepad"></i>TROPHY<span>HUNTER</span></Link>
                         <button className="sv-theme-toggle" onClick={toggleTheme}>
                             <i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
                         </button>

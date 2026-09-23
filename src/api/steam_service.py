@@ -26,10 +26,16 @@ def get_steam_games(steam_id):
 
 def map_steam_game(steam_game):
     game = steam_game.get("game", {})
+    appid = game.get("id")
+
     return {
-        "appid": game.get("id"),
+        "appid": appid,
         "name": game.get("name"),
-        "img_icon_url": game.get("icon"),
+        "img_icon_url": (
+            f"https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}/header.jpg"
+            if appid
+            else None
+        ),
         "playtime_forever": steam_game.get("minutes", 0)
     }
 

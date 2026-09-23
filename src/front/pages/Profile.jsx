@@ -1,6 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { AlmostCompletedGames } from "../components/AlmostCompletedGames";
+import { GameCard } from "../components/GameCard";
+import useFavorites from "../hooks/useFavorites";
+import "./profile.css";
 
+const FILTERS = [
+    { key: "all", label: "Todos" },
+    { key: "favorites", label: "Favoritos" },
+    { key: "recent", label: "Más jugados" },
+];
 
 export const Profile = () => {
 
@@ -10,6 +19,13 @@ export const Profile = () => {
     const [syncing, setSyncing] = useState(false);
     const [games, setGames] = useState([]);
     const [checkingSteam, setCheckingSteam] = useState(true);
+    const [authToken] = useState(() => localStorage.getItem("token"));
+    const { favorites, toggleFavorite } = useFavorites(authToken);
+    const [me, setMe] = useState(null);
+    const [steamPersona, setSteamPersona] = useState(null);
+    const [friends, setFriends] = useState([]);
+    const [filter, setFilter] = useState("all");
+    const [almostKey, setAlmostKey] = useState(0);
 
 
 
@@ -84,6 +100,7 @@ export const Profile = () => {
 
                 if (response.ok && data.linked) {
                     setSteamAccount(data.steam_account);
+                    setSteamPersona(data.steam_profile?.result || null);
 
                     loadGames();
                 }
@@ -102,6 +119,29 @@ export const Profile = () => {
         getSteamProfile();
 
     }, []);
+
+
+    // datos del usuario (nombre, email) y contador de amigos
+    useEffect(() => {
+
+        if (!authToken) {
+            return;
+        }
+
+        const headers = { Authorization: `Bearer ${authToken}` };
+        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+        fetch(`${backendUrl}/api/me`, { headers })
+            .then((res) => res.json())
+            .then((data) => setMe(data.user || null))
+            .catch(() => {});
+
+        fetch(`${backendUrl}/api/friends`, { headers })
+            .then((res) => res.json())
+            .then((data) => setFriends(data.friendships || []))
+            .catch(() => {});
+
+    }, [authToken]);
 
 
     useEffect(() => {
@@ -288,6 +328,9 @@ export const Profile = () => {
             // Actualizar los juegos en la interfaz
             setGames(data.games || []);
 
+            // recargar "Casi completados" con los porcentajes nuevos
+            setAlmostKey((key) => key + 1);
+
             setSteamMessage(
                 "¡Juegos de Steam sincronizados correctamente!"
             );
@@ -320,127 +363,345 @@ export const Profile = () => {
     };
 
 
+    // ==========================================
+    // RESUMEN Y FILTROS
+    // ==========================================
+    const stats = useMemo(() => {
+
+        const totalMinutes = games.reduce(
+            (sum, userGame) => sum + (userGame.playtime_forever || 0),
+            0
+        );
+
+        return {
+            games: games.length,
+            hours: Math.round(totalMinutes / 60),
+            friends: friends.length,
+        };
+
+    }, [games, friends]);
+
+    const filteredGames = useMemo(() => {
+
+        let result = games;
+
+        if (filter === "favorites") {
+            result = result.filter((userGame) => favorites.includes(userGame.game.appid));
+        }
+
+        if (filter === "recent") {
+            result = [...result].sort((a, b) => b.playtime_forever - a.playtime_forever);
+        }
+
+        return result.slice(0, 8);
+
+    }, [games, filter, favorites]);
+
+
     return (
-        <div>
+        <div className="profile-page">
 
-            <h1>Mi perfil</h1>
+            {/* CABECERA */}
+            <header className="sv-overview">
 
-            {checkingSteam ? (
+                <div className="container">
 
-                <div>
-                    <p>⏳ Comprobando conexión con Steam...</p>
-                </div>
+                    <div className="profile-label">TROPHY HUNTER</div>
 
-            ) : !steamAccount ? (
+                    <div className="row align-items-center g-4">
 
-                <div>
+                        <div className="col-auto">
+                            <img
+                                src={
+                                    steamPersona?.avatar?.large ||
+                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(me?.nickname || "TH")}`
+                                }
+                                alt="Avatar"
+                                className="sv-avatar"
+                            />
+                        </div>
 
-                    <h3>🎮 Steam</h3>
+                        <div className="col">
 
-                    <p>
-                        Tu cuenta de Steam no está vinculada.
-                    </p>
+                            <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
 
-                    <button onClick={connectSteam}>
-                        🎮 Vincular Steam
-                    </button>
+                                <h1 className="sv-player-name mb-0">
+                                    {me?.nickname || steamPersona?.nickname || "Mi perfil"}
+                                </h1>
 
-                </div>
+                                <span className={`sv-badge-source ${steamAccount ? "registered" : "mock"}`}>
+                                    {steamAccount ? "Steam vinculado" : "Steam sin vincular"}
+                                </span>
 
-            ) : (
+                            </div>
 
-                <div>
-
-                    <h3>
-                        ✅ Steam conectada
-                    </h3>
-
-                    <p>
-                        Steam ID:{" "}
-                        {hideSteamId(
-                            steamAccount.steam_id
-                        )}
-                    </p>
-
-                    {/* BOTÓN SINCRONIZAR */}
-                    <button
-                        onClick={syncSteam}
-                        disabled={syncing}
-                    >
-                        {syncing
-                            ? "⏳ Sincronizando..."
-                            : games.length === 0
-                                ? "🔄 Sincronizar Steam"
-                                : "🔄 Actualizar juegos"
-                        }
-                    </button>
-
-                    {" "}
-
-                    <button
-                        onClick={unlinkSteam}
-                        disabled={syncing}
-                    >
-                        ❌ Desvincular Steam
-                    </button>
-
-                    {/* CASI COMPLETADOS */}
-
-                    <AlmostCompletedGames />
-
-                    {/* JUEGOS */}
-                    {games.length > 0 && (
-
-                        <div>
-
-                            <h3>
-                                🎮 Mis juegos
-                            </h3>
-
-                            <p>
-                                Juegos sincronizados: {games.length}
+                            <p className="sv-player-meta mb-0">
+                                {me?.email}
                             </p>
 
-                            {games.map((userGame) => (
+                        </div>
 
-                                <div key={userGame.id}>
+                    </div>
 
-                                    <h4>
-                                        {userGame.game.name}
-                                    </h4>
+                    {/* TARJETAS DE RESUMEN */}
+                    <div className="sv-stats-row">
 
-                                    <p>
-                                        Tiempo jugado:{" "}
-                                        {Math.floor(userGame.playtime_forever / 60)} horas
-                                    </p>
+                        <div className="sv-stat-tile">
+                            <div className="sv-stat-value">{stats.games}</div>
+                            <div className="sv-stat-label">Juegos</div>
+                        </div>
 
+                        <div className="sv-stat-tile">
+                            <div className="sv-stat-value">{stats.hours.toLocaleString("es-ES")}</div>
+                            <div className="sv-stat-label">Horas jugadas</div>
+                        </div>
+
+                        <div className="sv-stat-tile">
+                            <div className="sv-stat-value">{stats.friends}</div>
+                            <div className="sv-stat-label">Amigos</div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <div className="container py-5">
+
+                {/* MENSAJE DE ÉXITO */}
+
+                {steamMessage && (
+
+                    <div className="profile-message profile-message-success mb-3">
+
+                        <i className="fa-solid fa-circle-check me-2"></i>
+                        {steamMessage}
+
+                    </div>
+
+                )}
+
+
+                {/* MENSAJE DE ERROR */}
+
+                {steamError && (
+
+                    <div className="profile-message profile-message-error mb-3">
+
+                        <i className="fa-solid fa-circle-exclamation me-2"></i>
+                        {steamError}
+
+                    </div>
+
+                )}
+
+
+                {checkingSteam ? (
+
+                    /* ==============================
+                       COMPROBANDO STEAM
+                    ============================== */
+
+                    <div className="profile-card text-center">
+                        <div className="profile-spinner"></div>
+
+                        <p className="profile-info">
+                            Comprobando conexión con Steam...
+                        </p>
+                    </div>
+
+
+                ) : !steamAccount ? (
+
+                    /* ==============================
+                       STEAM NO CONECTADO
+                    ============================== */
+
+                    <div className="profile-card">
+
+                        <div className="profile-section-title">
+                            <i className="fa-brands fa-steam me-2"></i>
+                            Steam
+                        </div>
+
+                        <p className="profile-info">
+                            Tu cuenta de Steam no está vinculada.
+                        </p>
+
+                        <button
+                            className="profile-btn"
+                            onClick={connectSteam}
+                        >
+                            <i className="fa-brands fa-steam me-2"></i>
+                            Vincular Steam
+                        </button>
+
+                    </div>
+
+
+                ) : (
+
+                    /* ==============================
+                       STEAM CONECTADO
+                    ============================== */
+
+                    <>
+
+                        {/* INFORMACIÓN STEAM */}
+
+                        <div className="sv-steam-card linked mb-4">
+
+                            <div className="sv-steam-icon">
+                                <i className="fa-brands fa-steam"></i>
+                            </div>
+
+                            <div className="flex-grow-1">
+
+                                <div className="sv-game-title">
+                                    Cuenta de Steam vinculada
                                 </div>
+
+                                <p className="profile-info mb-0">
+                                    Steam ID:{" "}
+                                    <span className="profile-steam-id">
+                                        {hideSteamId(
+                                            steamAccount.steam_id
+                                        )}
+                                    </span>
+                                </p>
+
+                            </div>
+
+
+                            <div className="d-flex gap-2 flex-wrap sv-steam-actions">
+
+                                {/* SINCRONIZAR */}
+
+                                <button
+                                    className="profile-btn"
+                                    onClick={syncSteam}
+                                    disabled={syncing}
+                                >
+                                    <i className={`fa-solid fa-rotate me-2${syncing ? " fa-spin" : ""}`}></i>
+                                    {syncing
+                                        ? "Sincronizando..."
+                                        : games.length === 0
+                                            ? "Sincronizar Steam"
+                                            : "Actualizar juegos"
+                                    }
+                                </button>
+
+
+                                {/* DESVINCULAR */}
+
+                                <button
+                                    className="profile-btn-outline"
+                                    onClick={unlinkSteam}
+                                    disabled={syncing}
+                                >
+                                    Desvincular Steam
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* CASI COMPLETADOS */}
+
+                        <div className="profile-card mb-4">
+
+                            <div className="profile-section-title">
+                                <i className="fa-solid fa-trophy me-2"></i>
+                                Casi completados
+                            </div>
+
+                            <AlmostCompletedGames key={almostKey} />
+
+                        </div>
+
+
+                        {/* JUEGOS */}
+
+                        <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mt-5 mb-4">
+
+                            <div>
+
+                                <p className="sv-label">BIBLIOTECA</p>
+
+                                <h2 className="sv-h2">
+                                    MIS <span style={{ color: "var(--accent)" }}>JUEGOS</span>
+                                </h2>
+
+                            </div>
+
+                            <div className="sv-filter-group">
+
+                                {FILTERS.map((item) => (
+
+                                    <button
+                                        key={item.key}
+                                        className={`sv-filter-btn${filter === item.key ? " active" : ""}`}
+                                        onClick={() => setFilter(item.key)}
+                                    >
+                                        {item.label}
+                                    </button>
+
+                                ))}
+
+                            </div>
+
+                        </div>
+
+
+                        {filteredGames.length === 0 && (
+
+                            <p className="sv-empty">
+                                <i className="fa-solid fa-gamepad"></i>
+                                {games.length === 0
+                                    ? "Todavía no has sincronizado tu biblioteca. Usa el botón de arriba."
+                                    : "No hay juegos que coincidan con este filtro."}
+                            </p>
+
+                        )}
+
+
+                        <div className="row g-3">
+
+                            {filteredGames.map((userGame) => (
+
+                                <GameCard
+                                    key={userGame.id}
+                                    userGame={userGame}
+                                    isFavorite={favorites.includes(userGame.game.appid)}
+                                    onToggleFavorite={toggleFavorite}
+                                    achievementsLink={`/achievements?appid=${userGame.game.appid}`}
+                                />
 
                             ))}
 
                         </div>
 
-                    )}
 
-                </div>
+                        {games.length > 8 && (
 
-            )}
+                            <div className="text-center mt-4">
 
-            {steamMessage && (
+                                <Link to="/games" className="btn sv-btn-outline">
+                                    Ver todos los juegos <i className="fa-solid fa-arrow-right ms-1"></i>
+                                </Link>
 
-                <p>
-                    ✅ {steamMessage}
-                </p>
+                            </div>
 
-            )}
+                        )}
 
-            {steamError && (
+                    </>
 
-                <p>
-                    ❌ {steamError}
-                </p>
+                )}
 
-            )}
+            </div>
 
         </div>
     );

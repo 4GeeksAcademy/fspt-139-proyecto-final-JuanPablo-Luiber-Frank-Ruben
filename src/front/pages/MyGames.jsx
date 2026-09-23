@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import useFavorites from "../hooks/useFavorites";
-import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const FILTERS = [
     {key: "all", label: "Todos"},
@@ -24,7 +24,7 @@ export const MyGames = () => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     const [ token, setToken ] = useState(null);
-  	const { favorites, toggleFavorite } = useFavorites(token);
+	const { favorites, toggleFavorite } = useFavorites(token);
     const [ userId, setUserId ] = useState(null);
     const [ userGames, setUserGames ] = useState([]);
     const [ loading, setLoading ] = useState( true );
@@ -64,7 +64,7 @@ export const MyGames = () => {
     useEffect(loadGames, [token, userId]);
 
     const filteredGames = useMemo(() => {
-		let result = userGames;
+		let result = [...userGames].sort((a, b) => b.playtime_forever - a.playtime_forever);
 		if ( filter === "recent" ) result = [...result].sort((a, b) => b.playtime_forever - a.playtime_forever);
 		if ( search.trim()) {
 			const q = search.trim().toLowerCase();
@@ -236,9 +236,10 @@ export const MyGames = () => {
 									</button>
 
 									<img
-										src={ug.game.img_icon_url || `https://cdn.cloudflare.steamstatic.com/steam/apps/${ug.game.appid}/header.jpg`}
+										src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${ug.game.appid}/header.jpg`}
 										className="card-img-top"
 										alt={ug.game.name}
+										loading="lazy"
 										onError={(e) => { e.target.style.opacity = 0; }}
 									/>
 									<div className="card-body">
@@ -246,6 +247,9 @@ export const MyGames = () => {
 										<p className="card-text small sv-text-dim mb-0">
 											<i className="fa-regular fa-clock"></i> {Math.round((ug.playtime_forever / 60) * 10) / 10} h jugadas
 										</p>
+										<Link to={`/achievements?appid=${ug.game.appid}`} className="btn btn-sm sv-btn-outline mt-2">
+											<i className="fa-solid fa-trophy"></i> Ver logros
+										</Link>
 									</div>
 								</div>
 							</div>
