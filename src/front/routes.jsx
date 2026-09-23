@@ -39,7 +39,6 @@ export const router = createBrowserRouter(
             <Route path="/games" element={<MyGames />} />
             <Route path="/achievements" element={<Achievements />} />
           </Route>
-          <Route path="/achievements/:appid" element={<Achievements />} />
           <Route path="/404" element={<NotFound />} />
         </Route>
       </>

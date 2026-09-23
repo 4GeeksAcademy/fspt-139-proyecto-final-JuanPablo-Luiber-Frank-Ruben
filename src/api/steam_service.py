@@ -27,7 +27,6 @@ def get_steam_games(steam_id):
 def map_steam_game(steam_game):
     game = steam_game.get("game", {})
     appid = game.get("id")
-    print("STEAM GAME:", steam_game)
 
     return {
         "appid": appid,
