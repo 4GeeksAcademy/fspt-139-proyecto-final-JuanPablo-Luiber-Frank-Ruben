@@ -214,7 +214,7 @@
 /* ============ TARJETAS DE RESUMEN ============ */
 .sv-stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
@@ -334,6 +334,80 @@
   margin: 0;
 }
 
+/* ============ CINTA DE ESTADÍSTICAS (movimiento infinito) ============ */
+.sv-ticker {
+  overflow: hidden;
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--accent);
+}
+.sv-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: sv-ticker-scroll 25s linear infinite;
+}
+.sv-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #fff;
+  white-space: nowrap;
+}
+@keyframes sv-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sv-ticker-track {
+    animation: none;
+  }
+}
+
+/* ============ FEED DE ACTIVIDAD ============ */
+.sv-feed-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 0.7rem 0.9rem;
+}
+.sv-feed-icon,
+.sv-feed-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 2px;
+  background: var(--bg-3);
+  flex-shrink: 0;
+  object-fit: cover;
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+.sv-feed-avatar {
+  border-radius: 50%;
+}
+.sv-feed-text {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.sv-feed-time {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ============ MÓVIL (un solo bloque para todo el Perfil) ============ */
 @media (max-width: 576px) {
   .profile-card {
@@ -350,6 +424,9 @@
   .sv-player-name {
     font-size: 1.6rem;
   }
+  .sv-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .sv-stat-tile {
     padding: 1rem 0.4rem;
   }
@@ -364,5 +441,9 @@
   }
   .sv-steam-actions {
     width: 100%;
+  }
+  .sv-ticker-item {
+    font-size: 0.72rem;
+    padding: 0.6rem 1rem;
   }
 }

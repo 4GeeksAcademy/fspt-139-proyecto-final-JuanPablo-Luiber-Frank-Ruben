@@ -25,11 +25,37 @@ export const GameCard = ({ userGame, isFavorite, onToggleFavorite, achievementsL
                 />
                 <div className="card-body">
                     <h3 className="h6 card-title text-truncate" title={game.name}>{game.name}</h3>
-                    <p className="card-text small sv-text-dim mb-0">
+                    <p className="card-text small sv-text-dim mb-2">
                         <i className="fa-regular fa-clock"></i> {hours} h jugadas
                     </p>
+
+                    {userGame.achievements_total > 0 && (
+                        <>
+                            <div className="d-flex justify-content-between mb-1 small">
+                                <span className="sv-text-dim">
+                                    {userGame.achievements_unlocked}/{userGame.achievements_total} logros
+                                </span>
+                                <span className="fw-bold">
+                                    {Math.round(userGame.achievement_percentage)}%
+                                </span>
+                            </div>
+                            <div
+                                className="sv-progress mb-2"
+                                role="progressbar"
+                                aria-valuenow={Math.round(userGame.achievement_percentage)}
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                            >
+                                <div
+                                    className="sv-progress-fill"
+                                    style={{ width: `${userGame.achievement_percentage}%` }}
+                                ></div>
+                            </div>
+                        </>
+                    )}
+
                     {achievementsLink && (
-                        <Link to={achievementsLink} className="btn btn-sm sv-btn-outline mt-2">
+                        <Link to={achievementsLink} className="btn btn-sm sv-btn-outline">
                             <i className="fa-solid fa-trophy"></i> Ver logros
                         </Link>
                     )}
