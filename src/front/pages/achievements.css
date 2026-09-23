@@ -1,0 +1,6 @@
+.sv-ach-global {
+    margin-top: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+}

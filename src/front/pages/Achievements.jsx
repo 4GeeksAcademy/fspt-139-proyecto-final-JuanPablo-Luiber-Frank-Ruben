@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import "./achievements.css"
 
 function getUserIdFromToken(token) {
     try {
@@ -171,6 +172,23 @@ export const Achievements = () => {
                                     <div className="sv-ach-text">
                                         <div className="sv-ach-name">{a.display_name || a.name}</div>
                                         <div className="sv-ach-desc">{a.description || "Logro oculto"}</div>
+
+                                        {/* ==================================
+                                                PORCENTAJE GLOBAL
+                                            ================================== */}
+
+                                            {a.global_percentage !== null &&
+                                                a.global_percentage !== undefined && (
+
+                                                    <div className="sv-ach-global">
+
+                                                        <i className="fa-thin fa-earth-americas" style={{color: "rgb(255, 0, 106);"}}></i>{" "}
+                                                        {a.global_percentage}%
+                                                        {" "}
+                                                        de jugadores lo han conseguido
+
+                                                    </div>
+                                                )}
                                     </div>
                                     {a.unlocked && a.unlocked_at && (
                                         <div className="sv-ach-date">Desbloqueado el {formatDate(a.unlocked_at)}</div>

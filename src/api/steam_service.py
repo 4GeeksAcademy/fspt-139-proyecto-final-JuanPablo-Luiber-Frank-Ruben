@@ -85,3 +85,35 @@ def map_steam_achievement(achievement):
         "unlocked": achievement.get("unlocked", False),
         "unlocked_at": achievement.get("unlockedTimestamp") or None
     }
+
+def get_global_achievements(appid):
+    api_key = os.getenv("API_KEY")
+
+    if not api_key:
+        return None, "Steam API key is not configured"
+
+    url = (
+        f"https://api.steamapis.com/v2/steam/apps/"
+        f"{appid}/global-achievements"
+    )
+
+    try:
+        response = requests.get(
+            url,
+            headers={
+                "x-api-key": api_key
+            }
+        )
+
+    except requests.exceptions.RequestException:
+        return None, "Could not connect to SteamApis"
+
+    if response.status_code != 200:
+        return None, (
+            f"SteamApis returned an error: "
+            f"{response.status_code}"
+        )
+
+    data = response.json()
+
+    return data.get("result", []), None
