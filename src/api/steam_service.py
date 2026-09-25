@@ -117,3 +117,24 @@ def get_global_achievements(appid):
     data = response.json()
 
     return data.get("result", []), None
+
+#funcion que determina la rareza de un logro
+
+def get_achievement_rarity(global_percentage):
+
+    if global_percentage is None:
+        return None
+
+    if global_percentage <= 5:
+        return "legendary"
+
+    if global_percentage < 30:
+        return "ultra_rare"
+
+    if global_percentage < 50:
+        return "rare"
+
+    if global_percentage < 70:
+        return "uncommon"
+
+    return "common"

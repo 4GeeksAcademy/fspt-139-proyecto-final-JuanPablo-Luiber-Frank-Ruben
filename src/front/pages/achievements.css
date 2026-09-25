@@ -4,3 +4,34 @@
     font-size: 0.7rem;
     color: var(--accent);
 }
+
+
+.sv-ach-rarity {
+    margin-top: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/*colores para la rareza de los logros*/
+
+.sv-ach-rarity.common {
+    color: #6ee7b7;
+}
+
+.sv-ach-rarity.uncommon {
+    color: #60a5fa;
+}
+
+.sv-ach-rarity.rare {
+    color: #c084fc;
+}
+
+.sv-ach-rarity.ultra_rare {
+    color: #fb7185;
+}
+
+.sv-ach-rarity.legendary {
+    color: #facc15;
+}

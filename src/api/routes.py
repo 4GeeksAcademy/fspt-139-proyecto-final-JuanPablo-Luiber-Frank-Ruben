@@ -4,7 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
 from api.models import db, User, Game, UserGame, SteamAccount, Favorite, Achievement, UserAchievement
 from api.utils import generate_sitemap, APIException
-from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement, get_global_achievements
+from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement, get_global_achievements, get_achievement_rarity
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
@@ -996,8 +996,14 @@ def get_achievements(appid):
             mapped["global_percentage"] = (
                 db_achievement.global_percentage
             )
+
+            mapped["rarity"] = get_achievement_rarity(
+                db_achievement.global_percentage
+            )
+
         else:
             mapped["global_percentage"] = None
+            mapped["rarity"] = None
 
         mapped_achievements.append(mapped)
 

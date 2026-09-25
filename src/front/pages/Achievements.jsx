@@ -207,18 +207,28 @@ export const Achievements = () => {
                                                 PORCENTAJE GLOBAL
                                             ================================== */}
 
-                                            {a.global_percentage !== null &&
-                                                a.global_percentage !== undefined && (
+                                        {a.global_percentage !== null &&
+                                            a.global_percentage !== undefined && (
 
-                                                    <div className="sv-ach-global">
+                                                <div className="sv-ach-global">
 
-                                                        <i className="fa-thin fa-earth-americas" style={{color: "rgb(255, 0, 106);"}}></i>{" "}
-                                                        {a.global_percentage}%
-                                                        {" "}
-                                                        de jugadores lo han conseguido
+                                                    <i className="fa-thin fa-earth-americas" style={{ color: "rgb(255, 0, 106);" }}></i>{" "}
+                                                    {a.global_percentage}%
+                                                    {" "}
+                                                    de jugadores lo han conseguido
 
-                                                    </div>
-                                                )}
+                                                </div>
+                                            )}
+
+                                        {a.rarity && (
+                                            <div className={`sv-ach-rarity ${a.rarity}`}>
+                                                {a.rarity === "common" && "🟢 Común"}
+                                                {a.rarity === "uncommon" && "🔵 Poco común"}
+                                                {a.rarity === "rare" && "🟣 Raro"}
+                                                {a.rarity === "ultra_rare" && "🔴 Ultra raro"}
+                                                {a.rarity === "legendary" && "🟡 Legendario"}
+                                            </div>
+                                        )}
                                     </div>
                                     {a.unlocked && a.unlocked_at && (
                                         <div className="sv-ach-date">Desbloqueado el {formatDate(a.unlocked_at)}</div>
