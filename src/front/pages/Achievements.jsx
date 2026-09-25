@@ -38,6 +38,7 @@ export const Achievements = () => {
 
     // orden alfabético para el desplegable
     const [search, setSearch] = useState("");
+    const [showResults, setShowResults] = useState(false);
 
     const sortedGames = useMemo(
         () =>
@@ -145,26 +146,65 @@ export const Achievements = () => {
 
                 {userGames.length > 0 && (
                     <div className="row mb-3">
-                        <div className="col-md-5">
-                            <input
-                                type="text"
-                                className="form-control sv-ach-select mb-2"
-                                placeholder="Buscar juego..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                            <select
-                                className="form-select sv-ach-select"
-                                value={selectedAppid}
-                                onChange={(e) => setSelectedAppid(e.target.value)}
-                            >
-                                {filteredGames.length === 0 && (
-                                    <option value="" disabled>Sin resultados</option>
+                        <div className="col-md-6">
+
+                            <div className="sv-game-search">
+
+                                <input
+                                    type="text"
+                                    className="form-control sv-ach-select"
+                                    placeholder="Buscar juego..."
+                                    value={search}
+                                    onFocus={() => setShowResults(true)}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value);
+                                        setShowResults(true);
+                                    }}
+                                />
+
+                                {showResults && filteredGames.length > 0 && (
+                                    <div className="sv-game-search-results">
+
+                                        {filteredGames.map((ug) => (
+                                            <button
+                                                type="button"
+                                                className="sv-game-search-item"
+                                                key={ug.game.appid}
+                                                onClick={() => {
+                                                    setSelectedAppid(
+                                                        String(ug.game.appid)
+                                                    );
+                                                    setSearch(ug.game.name);
+                                                    setShowResults(false);
+                                                }}
+                                            >
+
+                                                <img
+                                                    src={ug.game.img_icon_url}
+                                                    alt={ug.game.name}
+                                                    className="sv-game-search-image"
+                                                />
+
+                                                <div className="sv-game-search-info">
+
+                                                    <div className="sv-game-search-name">
+                                                        {ug.game.name}
+                                                    </div>
+
+                                                    <div className="sv-game-search-playtime">
+                                                        {(ug.playtime_forever / 60).toFixed(1)} horas
+                                                    </div>
+
+                                                </div>
+
+                                            </button>
+                                        ))}
+
+                                    </div>
                                 )}
-                                {filteredGames.map((ug) => (
-                                    <option key={ug.game.appid} value={ug.game.appid}>{ug.game.name}</option>
-                                ))}
-                            </select>
+
+                            </div>
+
                         </div>
                     </div>
                 )}
@@ -212,7 +252,7 @@ export const Achievements = () => {
 
                                                 <div className="sv-ach-global">
 
-                                                    <i className="fa-thin fa-earth-americas" style={{ color: "rgb(255, 0, 106);" }}></i>{" "}
+                                                    <i className="fa-thin fa-earth-americas" style={{ color: "rgb(255, 0, 106)" }}></i>{" "}
                                                     {a.global_percentage}%
                                                     {" "}
                                                     de jugadores lo han conseguido

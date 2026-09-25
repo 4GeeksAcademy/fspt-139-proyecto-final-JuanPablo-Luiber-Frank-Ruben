@@ -35,3 +35,107 @@
 .sv-ach-rarity.legendary {
     color: #facc15;
 }
+
+/*lista bajo el input*/
+
+.sv-game-search {
+    position: relative;
+    width: 100%;
+}
+
+.sv-game-search-results {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 1000;
+
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+/*cada juego*/
+
+.sv-game-search-item {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 8px 10px;
+
+    border: 0;
+    border-bottom: 1px solid var(--border);
+
+    background: transparent;
+    color: var(--text);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+}
+
+/*el Hover*/
+
+.sv-game-search-item:hover {
+    background: rgba(255, 0, 106, 0.08);
+}
+
+/*La imagen*/
+
+.sv-game-search-image {
+    width: 64px;
+    height: 32px;
+
+    object-fit: cover;
+
+    flex-shrink: 0;
+}
+
+/*informacion del juego*/
+
+.sv-game-search-info {
+    min-width: 0;
+    flex: 1;
+}
+
+/*nombre del juego*/
+
+.sv-game-search-name {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/*horas del juego*/
+
+.sv-game-search-playtime {
+    margin-top: 2px;
+
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+
+    color: var(--text-dim);
+}
+
+
+
+
+
+
+
+
+
+
