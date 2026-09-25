@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import { Link } from "react-router-dom";
 import useFavorites from "../hooks/useFavorites";
 
@@ -31,6 +31,7 @@ export const MyGames = () => {
     const [ error, setError ] = useState("");
     const [ filter, setFilter ] = useState("all");
     const [ search, setSearch ] = useState("");
+    const [ alphaAsc, setAlphaAsc ] = useState(true); // true = A→Z, false = Z→A
 
     //almacenamos el token en el loalstorage
 
@@ -62,13 +63,16 @@ export const MyGames = () => {
     const filteredGames = useMemo(() => {
 		let result = [...userGames].sort((a, b) => b.playtime_forever - a.playtime_forever);
 		if ( filter === "recent" ) result = [...result].sort((a, b) => b.playtime_forever - a.playtime_forever);
+		if ( filter === "all" ) result = [...result].sort((a, b) =>
+			alphaAsc ? a.game.name.localeCompare(b.game.name) : b.game.name.localeCompare(a.game.name)
+		);
 		if ( search.trim()) {
 			const q = search.trim().toLowerCase();
 			result = result.filter((ug) => ug.game.name.toLowerCase().includes(q));
 		}
 		if (filter === "favorites") result = result.filter((ug) => favorites.includes(ug.game.appid));
 		return result;
-	}, [ userGames, filter, search, favorites ]);
+	}, [ userGames, filter, search, favorites, alphaAsc ]);
 
 	const stats = useMemo(() => {
 		const totalMinutes = userGames.reduce(( sum, ug ) => sum + ( ug.playtime_forever || 0 ), 0 );
@@ -112,20 +116,31 @@ export const MyGames = () => {
 					<h2 className="h4 fw-bold mb-0">Tu biblioteca</h2>
 					<div className="btn-group">
 						{FILTERS.map((f) => (
-							<button
-								key={f.key}
-								className={`btn btn-sm ${filter === f.key ? "btn-danger" : "sv-btn-outline"}`}
-								onClick={() => setFilter(f.key)}
-							>
-								{f.label}
-							</button>
+							<Fragment key={f.key}>
+								<button
+									className={`btn btn-sm ${filter === f.key ? "btn-danger" : "sv-btn-outline"}`}
+									onClick={() => setFilter(f.key)}
+								>
+									{f.label}
+								</button>
+								{f.key === "all" && (
+									<button
+										className="btn btn-sm sv-btn-outline"
+										onClick={() => setAlphaAsc((v) => !v)}
+										disabled={filter !== "all"}
+										title={alphaAsc ? "Orden A-Z" : "Orden Z-A"}
+									>
+										<i className={`fa-solid ${alphaAsc ? "fa-arrow-down-a-z" : "fa-arrow-down-z-a"}`}></i>
+									</button>
+								)}
+							</Fragment>
 						))}
 					</div>
 				</div>
 
 				<input
 					type="text"
-					className="form-control sv-ach-select form-control-sm mb-4 ms-auto"
+					className="form-control sv-ach-select form-control-sm mb-4 ms-auto text-danger"
 					style={{ maxWidth: 220 }}
 					placeholder="Buscar juego..."
 					value={search}

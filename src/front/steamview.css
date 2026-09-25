@@ -568,6 +568,10 @@ flex: 1;
   border-color: var(--accent);
   box-shadow: none;
 }
+.sv-ach-select::placeholder {
+  color: var(--text-dim);
+  opacity: 0.85;
+}
 
 .sv-ach-summary {
   display: flex;
