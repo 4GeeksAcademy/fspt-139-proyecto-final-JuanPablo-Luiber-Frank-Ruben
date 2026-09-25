@@ -1,7 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { AlmostCompletedGames } from "../components/AlmostCompletedGames";
+import { GameCard } from "../components/GameCard";
+import useFavorites from "../hooks/useFavorites";
 import "./profile.css";
 
+const FILTERS = [
+    { key: "all", label: "Todos" },
+    { key: "favorites", label: "Favoritos" },
+    { key: "recent", label: "Más jugados" },
+];
+
+function timeAgo(dateStr) {
+    if (!dateStr) return "";
+    const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+    if (days <= 0) return "Hoy";
+    if (days === 1) return "Ayer";
+    return `Hace ${days} días`;
+}
 
 export const Profile = () => {
 
@@ -11,6 +27,13 @@ export const Profile = () => {
     const [syncing, setSyncing] = useState(false);
     const [games, setGames] = useState([]);
     const [checkingSteam, setCheckingSteam] = useState(true);
+    const [authToken] = useState(() => localStorage.getItem("token"));
+    const { favorites, toggleFavorite } = useFavorites(authToken);
+    const [me, setMe] = useState(null);
+    const [steamPersona, setSteamPersona] = useState(null);
+    const [friends, setFriends] = useState([]);
+    const [filter, setFilter] = useState("all");
+    const [almostKey, setAlmostKey] = useState(0);
 
 
 
@@ -85,6 +108,7 @@ export const Profile = () => {
 
                 if (response.ok && data.linked) {
                     setSteamAccount(data.steam_account);
+                    setSteamPersona(data.steam_profile?.result || null);
 
                     loadGames();
                 }
@@ -103,6 +127,29 @@ export const Profile = () => {
         getSteamProfile();
 
     }, []);
+
+
+    // datos del usuario (nombre, email) y contador de amigos
+    useEffect(() => {
+
+        if (!authToken) {
+            return;
+        }
+
+        const headers = { Authorization: `Bearer ${authToken}` };
+        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+        fetch(`${backendUrl}/api/me`, { headers })
+            .then((res) => res.json())
+            .then((data) => setMe(data.user || null))
+            .catch(() => {});
+
+        fetch(`${backendUrl}/api/friends`, { headers })
+            .then((res) => res.json())
+            .then((data) => setFriends(data.friendships || []))
+            .catch(() => {});
+
+    }, [authToken]);
 
 
     useEffect(() => {
@@ -289,6 +336,9 @@ export const Profile = () => {
             // Actualizar los juegos en la interfaz
             setGames(data.games || []);
 
+            // recargar "Casi completados" con los porcentajes nuevos
+            setAlmostKey((key) => key + 1);
+
             setSteamMessage(
                 "¡Juegos de Steam sincronizados correctamente!"
             );
@@ -321,23 +371,218 @@ export const Profile = () => {
     };
 
 
+    // ==========================================
+    // RESUMEN Y FILTROS
+    // ==========================================
+    const stats = useMemo(() => {
+
+        const totalMinutes = games.reduce(
+            (sum, userGame) => sum + (userGame.playtime_forever || 0),
+            0
+        );
+
+        const totalAchievements = games.reduce(
+            (sum, userGame) => sum + (userGame.achievements_unlocked || 0),
+            0
+        );
+
+        return {
+            games: games.length,
+            hours: Math.round(totalMinutes / 60),
+            friends: friends.length,
+            achievements: totalAchievements,
+        };
+
+    }, [games, friends]);
+
+    // juego más jugado, para la cinta de estadísticas
+    const mostPlayedGame = useMemo(() => {
+        if (games.length === 0) return null;
+        return [...games].sort((a, b) => b.playtime_forever - a.playtime_forever)[0];
+    }, [games]);
+
+    const tickerItems = [
+        mostPlayedGame && { icon: "fa-solid fa-fire", text: `Más jugado: ${mostPlayedGame.game.name}` },
+        { icon: "fa-solid fa-gamepad", text: `${stats.games} juegos en la biblioteca` },
+        { icon: "fa-solid fa-clock", text: `${stats.hours} horas jugadas en total` },
+        { icon: "fa-solid fa-trophy", text: `${stats.achievements} logros desbloqueados` },
+        { icon: "fa-solid fa-users", text: `${stats.friends} amigos conectados` },
+    ].filter(Boolean);
+
+
+    // ==========================================
+    // ACTIVIDAD: mis últimos logros y los de mis amigos
+    // ==========================================
+    const [myAchievements, setMyAchievements] = useState([]);
+    const [friendAchievements, setFriendAchievements] = useState([]);
+
+    useEffect(() => {
+
+        if (!authToken) {
+            return;
+        }
+
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me/achievements?limit=8`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+        })
+            .then((res) => res.json())
+            .then((data) => setMyAchievements(data.achievements || []))
+            .catch(() => {});
+
+    }, [authToken, almostKey]);
+
+    useEffect(() => {
+
+        if (!authToken || friends.length === 0) {
+            setFriendAchievements([]);
+            return;
+        }
+
+        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+        const headers = { Authorization: `Bearer ${authToken}` };
+
+        Promise.all(
+            friends.map((friend) =>
+                fetch(`${backendUrl}/api/friends/${friend.id}/achievements?limit=2`, { headers })
+                    .then((res) => res.json())
+                    .then((data) => (data.achievements || []).map((ua) => ({ ...ua, friend })))
+                    .catch(() => [])
+            )
+        ).then((lists) => {
+            const merged = lists.flat();
+            merged.sort((a, b) => (b.unlocked_at || "").localeCompare(a.unlocked_at || ""));
+            setFriendAchievements(merged.slice(0, 6));
+        });
+
+    }, [authToken, friends]);
+
+    const filteredGames = useMemo(() => {
+
+        // más jugados primero: son los que tienen logros sincronizados
+        let result = [...games].sort((a, b) => b.playtime_forever - a.playtime_forever);
+
+        if (filter === "favorites") {
+            result = result.filter((userGame) => favorites.includes(userGame.game.appid));
+        }
+
+        return result.slice(0, 8);
+
+    }, [games, filter, favorites]);
+
+
     return (
         <div className="profile-page">
 
+            {/* CABECERA */}
+            <header className="sv-overview">
+
+                <div className="container">
+
+                    <div className="row align-items-center g-4">
+
+                        <div className="col-auto">
+                            <img
+                                src={
+                                    steamPersona?.avatar?.large ||
+                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(me?.nickname || "TH")}`
+                                }
+                                alt="Avatar"
+                                className="sv-avatar"
+                            />
+                        </div>
+
+                        <div className="col">
+
+                            <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
+
+                                <h1 className="sv-player-name mb-0">
+                                    {me?.nickname || steamPersona?.nickname || "Mi perfil"}
+                                </h1>
+
+                                <span className={`sv-badge-source ${steamAccount ? "registered" : "mock"}`}>
+                                    {steamAccount ? "Steam vinculado" : "Steam sin vincular"}
+                                </span>
+
+                            </div>
+
+                            <p className="sv-player-meta mb-0">
+                                {me?.email}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    {/* TARJETAS DE RESUMEN */}
+                    <div className="sv-stats-row">
+
+                        <div className="sv-stat-tile">
+                            <div className="sv-stat-value">{stats.games}</div>
+                            <div className="sv-stat-label">Juegos</div>
+                        </div>
+
+                        <div className="sv-stat-tile">
+                            <div className="sv-stat-value">{stats.hours.toLocaleString("es-ES")}</div>
+                            <div className="sv-stat-label">Horas jugadas</div>
+                        </div>
+
+                        <div className="sv-stat-tile">
+                            <div className="sv-stat-value">{stats.friends}</div>
+                            <div className="sv-stat-label">Amigos</div>
+                        </div>
+
+                        <div className="sv-stat-tile">
+                            <div className="sv-stat-value">{stats.achievements}</div>
+                            <div className="sv-stat-label">Logros</div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                {tickerItems.length > 0 && (
+                    <div className="sv-ticker">
+                        <div className="sv-ticker-track">
+                            {[...tickerItems, ...tickerItems].map((item, i) => (
+                                <span className="sv-ticker-item" key={i}>
+                                    <i className={item.icon}></i> {item.text}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+            </header>
+
+
             <div className="container py-5">
 
-                {/* TÍTULO */}
-                <div className="mb-4">
-                    <div className="profile-label">TROPHY HUNTER</div>
+                {/* MENSAJE DE ÉXITO */}
 
-                    <h1 className="profile-title">
-                        Mi perfil
-                    </h1>
+                {steamMessage && (
 
-                    <p className="profile-subtitle">
-                        Gestiona tu cuenta de Steam y tus juegos
-                    </p>
-                </div>
+                    <div className="profile-message profile-message-success mb-3">
+
+                        <i className="fa-solid fa-circle-check me-2"></i>
+                        {steamMessage}
+
+                    </div>
+
+                )}
+
+
+                {/* MENSAJE DE ERROR */}
+
+                {steamError && (
+
+                    <div className="profile-message profile-message-error mb-3">
+
+                        <i className="fa-solid fa-circle-exclamation me-2"></i>
+                        {steamError}
+
+                    </div>
+
+                )}
 
 
                 {checkingSteam ? (
@@ -364,7 +609,8 @@ export const Profile = () => {
                     <div className="profile-card">
 
                         <div className="profile-section-title">
-                            🎮 Steam
+                            <i className="fa-brands fa-steam me-2"></i>
+                            Steam
                         </div>
 
                         <p className="profile-info">
@@ -375,7 +621,8 @@ export const Profile = () => {
                             className="profile-btn"
                             onClick={connectSteam}
                         >
-                            🎮 Vincular Steam
+                            <i className="fa-brands fa-steam me-2"></i>
+                            Vincular Steam
                         </button>
 
                     </div>
@@ -391,57 +638,58 @@ export const Profile = () => {
 
                         {/* INFORMACIÓN STEAM */}
 
-                        <div className="profile-card mb-4">
+                        <div className="sv-steam-card linked mb-4">
 
-                            <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div className="sv-steam-icon">
+                                <i className="fa-brands fa-steam"></i>
+                            </div>
 
-                                <div>
+                            <div className="flex-grow-1">
 
-                                    <div className="profile-section-title">
-                                        ✅ Steam conectada
-                                    </div>
-
-                                    <p className="profile-info mb-0">
-                                        Steam ID:{" "}
-                                        <span className="profile-steam-id">
-                                            {hideSteamId(
-                                                steamAccount.steam_id
-                                            )}
-                                        </span>
-                                    </p>
-
+                                <div className="sv-game-title">
+                                    Cuenta de Steam vinculada
                                 </div>
 
+                                <p className="profile-info mb-0">
+                                    Steam ID:{" "}
+                                    <span className="profile-steam-id">
+                                        {hideSteamId(
+                                            steamAccount.steam_id
+                                        )}
+                                    </span>
+                                </p>
 
-                                <div className="d-flex gap-2 flex-wrap">
-
-                                    {/* SINCRONIZAR */}
-
-                                    <button
-                                        className="profile-btn"
-                                        onClick={syncSteam}
-                                        disabled={syncing}
-                                    >
-                                        {syncing
-                                            ? "⏳ Sincronizando..."
-                                            : games.length === 0
-                                                ? "🔄 Sincronizar Steam"
-                                                : "🔄 Actualizar juegos"
-                                        }
-                                    </button>
+                            </div>
 
 
-                                    {/* DESVINCULAR */}
+                            <div className="d-flex gap-2 flex-wrap sv-steam-actions">
 
-                                    <button
-                                        className="profile-btn-outline"
-                                        onClick={unlinkSteam}
-                                        disabled={syncing}
-                                    >
-                                        ❌ Desvincular Steam
-                                    </button>
+                                {/* SINCRONIZAR */}
 
-                                </div>
+                                <button
+                                    className="profile-btn"
+                                    onClick={syncSteam}
+                                    disabled={syncing}
+                                >
+                                    <i className={`fa-solid fa-rotate me-2${syncing ? " fa-spin" : ""}`}></i>
+                                    {syncing
+                                        ? "Sincronizando..."
+                                        : games.length === 0
+                                            ? "Sincronizar Steam"
+                                            : "Actualizar juegos"
+                                    }
+                                </button>
+
+
+                                {/* DESVINCULAR */}
+
+                                <button
+                                    className="profile-btn-outline"
+                                    onClick={unlinkSteam}
+                                    disabled={syncing}
+                                >
+                                    Desvincular Steam
+                                </button>
 
                             </div>
 
@@ -453,75 +701,193 @@ export const Profile = () => {
                         <div className="profile-card mb-4">
 
                             <div className="profile-section-title">
-                                🏆 Casi completados
+                                <i className="fa-solid fa-trophy me-2"></i>
+                                Casi completados
                             </div>
 
-                            <AlmostCompletedGames />
+                            <AlmostCompletedGames key={almostKey} />
 
                         </div>
 
 
                         {/* JUEGOS */}
 
-                        {games.length > 0 && (
+                        <div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mt-5 mb-4">
 
-                            <div className="profile-card">
+                            <div>
 
-                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                <p className="sv-label">BIBLIOTECA</p>
 
-                                    <div>
+                                <h2 className="sv-h2">
+                                    MIS <span style={{ color: "var(--accent)" }}>JUEGOS</span>
+                                </h2>
 
-                                        <div className="profile-section-title">
-                                            🎮 Mis juegos
-                                        </div>
+                            </div>
 
-                                        <p className="profile-info mb-0">
-                                            Juegos sincronizados:{" "}
-                                            <span className="profile-accent">
-                                                {games.length}
-                                            </span>
-                                        </p>
+                            <div className="sv-filter-group">
 
-                                    </div>
+                                {FILTERS.map((item) => (
 
-                                </div>
+                                    <button
+                                        key={item.key}
+                                        className={`sv-filter-btn${filter === item.key ? " active" : ""}`}
+                                        onClick={() => setFilter(item.key)}
+                                    >
+                                        {item.label}
+                                    </button>
+
+                                ))}
+
+                            </div>
+
+                        </div>
 
 
-                                <div className="profile-games">
+                        {filteredGames.length === 0 && (
 
-                                    {games
-                                        .slice()
-                                        .sort(
-                                            (a, b) =>
-                                                b.playtime_forever -
-                                                a.playtime_forever
-                                        )
-                                        .map((userGame) => (
+                            <p className="sv-empty">
+                                <i className="fa-solid fa-gamepad"></i>
+                                {games.length === 0
+                                    ? "Todavía no has sincronizado tu biblioteca. Usa el botón de arriba."
+                                    : "No hay juegos que coincidan con este filtro."}
+                            </p>
 
-                                            <div
-                                                className="profile-game"
-                                                key={userGame.id}
-                                            >
+                        )}
 
-                                                <div>
 
-                                                    <h4 className="profile-game-name">
-                                                        {userGame.game.name}
-                                                    </h4>
+                        <div className="row g-3">
 
-                                                    <p className="profile-game-time">
-                                                        🕐{" "}
-                                                        {Math.floor(
-                                                            userGame.playtime_forever / 60
-                                                        )}{" "}
-                                                        horas jugadas
-                                                    </p>
+                            {filteredGames.map((userGame) => (
+
+                                <GameCard
+                                    key={userGame.id}
+                                    userGame={userGame}
+                                    isFavorite={favorites.includes(userGame.game.appid)}
+                                    onToggleFavorite={toggleFavorite}
+                                    achievementsLink={`/achievements?appid=${userGame.game.appid}`}
+                                />
+
+                            ))}
+
+                        </div>
+
+
+                        {games.length > 8 && (
+
+                            <div className="text-center mt-4">
+
+                                <Link to="/games" className="btn sv-btn-outline">
+                                    Ver todos los juegos <i className="fa-solid fa-arrow-right ms-1"></i>
+                                </Link>
+
+                            </div>
+
+                        )}
+
+
+                        {/* ACTIVIDAD */}
+
+                        {(myAchievements.length > 0 || friendAchievements.length > 0) && (
+
+                            <div className="mt-5">
+
+                                <p className="sv-label">ACTIVIDAD</p>
+                                <h2 className="sv-h2 mb-4">
+                                    ÚLTIMOS <span style={{ color: "var(--accent)" }}>MOVIMIENTOS</span>
+                                </h2>
+
+                                <div className="row g-4">
+
+                                    <div className="col-lg-6">
+
+                                        <h6 className="sv-hint mb-3">
+                                            <i className="fa-solid fa-trophy me-2"></i>MIS ÚLTIMOS LOGROS
+                                        </h6>
+
+                                        {myAchievements.length === 0 && (
+                                            <p className="sv-empty">
+                                                <i className="fa-solid fa-trophy"></i>
+                                                Aún no tienes logros recientes.
+                                            </p>
+                                        )}
+
+                                        <div className="d-flex flex-column gap-2">
+
+                                            {myAchievements.map((ua) => (
+
+                                                <div className="sv-feed-item" key={ua.id}>
+
+                                                    {ua.achievement.image_url ? (
+                                                        <img
+                                                            className="sv-feed-icon"
+                                                            src={ua.achievement.image_url}
+                                                            alt=""
+                                                            onError={(e) => { e.target.style.opacity = 0; }}
+                                                        />
+                                                    ) : (
+                                                        <div className="sv-feed-icon d-flex align-items-center justify-content-center">
+                                                            <i className="fa-solid fa-trophy"></i>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex-grow-1">
+                                                        <div className="sv-feed-text">
+                                                            <strong>{ua.achievement.name}</strong>
+                                                        </div>
+                                                        <div className="sv-hint">{ua.game_name}</div>
+                                                    </div>
+
+                                                    <div className="sv-feed-time">{timeAgo(ua.unlocked_at)}</div>
 
                                                 </div>
 
-                                            </div>
+                                            ))}
 
-                                        ))}
+                                        </div>
+
+                                    </div>
+
+                                    <div className="col-lg-6">
+
+                                        <h6 className="sv-hint mb-3">
+                                            <i className="fa-solid fa-users me-2"></i>LOGROS DE TUS AMIGOS
+                                        </h6>
+
+                                        {friendAchievements.length === 0 && (
+                                            <p className="sv-empty">
+                                                <i className="fa-solid fa-users"></i>
+                                                Todavía no hay actividad de tus amigos.
+                                            </p>
+                                        )}
+
+                                        <div className="d-flex flex-column gap-2">
+
+                                            {friendAchievements.map((ua) => (
+
+                                                <div className="sv-feed-item" key={`${ua.friend.id}-${ua.id}`}>
+
+                                                    <img
+                                                        className="sv-feed-avatar"
+                                                        src={ua.friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(ua.friend.nickname)}`}
+                                                        alt={ua.friend.nickname}
+                                                    />
+
+                                                    <div className="flex-grow-1">
+                                                        <div className="sv-feed-text">
+                                                            <strong>{ua.friend.nickname}</strong> desbloqueó <strong>{ua.achievement.name}</strong>
+                                                        </div>
+                                                        <div className="sv-hint">{ua.game_name}</div>
+                                                    </div>
+
+                                                    <div className="sv-feed-time">{timeAgo(ua.unlocked_at)}</div>
+
+                                                </div>
+
+                                            ))}
+
+                                        </div>
+
+                                    </div>
 
                                 </div>
 
@@ -530,32 +896,6 @@ export const Profile = () => {
                         )}
 
                     </>
-
-                )}
-
-
-                {/* MENSAJE DE ÉXITO */}
-
-                {steamMessage && (
-
-                    <div className="profile-message profile-message-success">
-
-                        ✅ {steamMessage}
-
-                    </div>
-
-                )}
-
-
-                {/* MENSAJE DE ERROR */}
-
-                {steamError && (
-
-                    <div className="profile-message profile-message-error">
-
-                        ❌ {steamError}
-
-                    </div>
 
                 )}
 

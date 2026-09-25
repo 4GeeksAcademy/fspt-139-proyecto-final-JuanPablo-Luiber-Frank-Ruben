@@ -44,7 +44,7 @@ export const Signup = () => {
                 <i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
             </button>
 
-            <div className="sv-auth-brand">
+            <div className="sv-auth-brand d-none d-lg-flex">
                 <Link to="/login" className="sv-logo sv-auth-logo"><i className="fa-solid fa-gamepad"></i>TROPHY<span>HUNTER</span></Link>
                 <h1 className="sv-auth-brand-title">Crea tu cuenta y <span className="sv-outline">empieza</span></h1>
                 <p className="sv-auth-brand-sub">
@@ -52,7 +52,7 @@ export const Signup = () => {
                     cuenta real de Steam con un solo clic.
                 </p>
                 <ul className="sv-auth-brand-list list-unstyled">
-                    <li><i className="fa-solid fa-shield-halved"></i> Contraseña y steam ID cifrados</li>
+                    <li><i className="fa-solid fa-shield-halved"></i> Contraseña cifrada, nunca guardada en texto plano</li>
                     <li><i className="fa-solid fa-bolt"></i> Vinculación con Steam en un clic desde tu perfil</li>
                     <li><i className="fa-solid fa-star"></i> Guarda tus juegos favoritos y agrega amigos reales</li>
                 </ul>
@@ -61,7 +61,7 @@ export const Signup = () => {
             <div className="sv-auth-panel">
                 <div className="sv-auth-card">
                     <div className="d-flex justify-content-between align-items-center d-lg-none sv-auth-logo">
-                        <Link to="/login" className="sv-logo mb-0"><i className="fa-solid fa-gamepad"></i>STEAM<span>VIEW</span></Link>
+                        <Link to="/login" className="sv-logo mb-0"><i className="fa-solid fa-gamepad"></i>TROPHY<span>HUNTER</span></Link>
                         <button className="sv-theme-toggle" onClick={toggleTheme}>
                             <i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
                         </button>

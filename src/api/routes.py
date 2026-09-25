@@ -15,6 +15,7 @@ api = Blueprint('api', __name__)
 
 ALMOST_COMPLETED_THRESHOLD = 80
 ALMOST_COMPLETED_MIN_PLAYTIME = 10 * 60
+MAX_ACHIEVEMENT_SYNC = 25
 
 
 @api.route("/users", methods=["POST"])
@@ -155,6 +156,44 @@ def get_friends_of():
         "friends_of": [friend.serialize() for friend in user.friends_of]
     }), 200
 
+@api.route("/friends/<int:friend_id>/achievements", methods=["GET"])
+@jwt_required()
+def get_friend_achievements(friend_id):
+
+    user_id = get_jwt_identity()
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    friend = db.session.get(User, friend_id)
+
+    if not friend:
+        return jsonify({"error": "Friend not found"}), 404
+
+    if friend not in user.friendships:
+        return jsonify({"error": "This user is not your friend"}), 403
+
+    limit = request.args.get("limit", 5, type=int)
+
+    recent_achievements = db.session.execute(
+        db.select(UserAchievement)
+        .where(
+            UserAchievement.user_id == friend_id,
+            UserAchievement.unlocked == True
+        )
+        .order_by(UserAchievement.unlocked_at.desc())
+        .limit(limit)
+    ).scalars().all()
+
+    return jsonify({
+        "friend": {
+            "id": friend.id,
+            "nickname": friend.nickname,
+            "avatar_url": friend.avatar_url
+        },
+        "achievements": [ua.serialize() for ua in recent_achievements]
+    }), 200
 
 @api.route('/login', methods=['POST'])
 def login():
@@ -175,6 +214,42 @@ def login():
         return jsonify({"msg": "logeado correctamente", "token": access_token}), 200
     else:
         return jsonify({"error": "invalid email or password"}), 401
+
+
+@api.route("/me", methods=["GET"])
+@jwt_required()
+def get_me():
+    user = db.session.get(User, get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({"user": user.serialize()}), 200
+
+
+@api.route("/me/achievements", methods=["GET"])
+@jwt_required()
+def get_my_achievements():
+
+    user_id = get_jwt_identity()
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    limit = request.args.get("limit", 8, type=int)
+
+    recent_achievements = db.session.execute(
+        db.select(UserAchievement)
+        .where(
+            UserAchievement.user_id == user_id,
+            UserAchievement.unlocked == True
+        )
+        .order_by(UserAchievement.unlocked_at.desc())
+        .limit(limit)
+    ).scalars().all()
+
+    return jsonify({
+        "achievements": [ua.serialize() for ua in recent_achievements]
+    }), 200
 
 
 @api.route("/users/<int:user_id>/games", methods=["POST"])
@@ -266,9 +341,6 @@ def steam_login():
         }), 404
 
     session["steam_link_user_id"] = user_id
-
-    print("STEAM LINK USER ID GUARDADO:", user_id)
-    print("SESSION:", dict(session))
 
     return_url = os.getenv('STEAM_RETURN_URL')
 
@@ -462,6 +534,14 @@ def sync_steam():
             "error": "No Steam games found"
         }), 404
 
+    # los más jugados primero: el tope de logros se aplica a los que importan
+    games_list = sorted(
+        games_list,
+        key=lambda g: g.get("minutes", 0),
+        reverse=True
+    )
+    achievements_synced = 0
+
     # ==========================================
     # 2. PROCESAR CADA JUEGO
     # ==========================================
@@ -529,6 +609,15 @@ def sync_steam():
             "playtime_forever",
             0
         )
+
+        # solo pedimos logros a juegos con horas suficientes y hasta el tope
+        if (
+            game_data.get("playtime_forever", 0) < ALMOST_COMPLETED_MIN_PLAYTIME
+            or achievements_synced >= MAX_ACHIEVEMENT_SYNC
+        ):
+            continue
+
+        achievements_synced += 1
 
         # ==========================================
         # 6. OBTENER LOGROS DEL JUEGO
@@ -603,9 +692,6 @@ def steam_callback():
 
     user_id = session.get("steam_link_user_id")
 
-    print("CALLBACK SESSION:", dict(session))
-    print("CALLBACK USER ID:", user_id)
-
     if not user_id:
         return jsonify({
             "error": "Steam linking session not found"
@@ -640,17 +726,12 @@ def steam_callback():
 
     steam_id = claimed_id.rsplit("/", 1)[-1]
 
-    print("STEAM ID OBTENIDO:", steam_id)
-    print("USER ID:", user_id)
-
     user = db.session.get(User, user_id)
 
     if not user:
         return jsonify({
             "error": "User not found"
         }), 404
-
-    print("USUARIO ENCONTRADO:", user.id)
 
     # Buscar si Steam ya está vinculada
     existing_steam_account = db.session.execute(
@@ -661,15 +742,8 @@ def steam_callback():
 
     if existing_steam_account:
 
-        print(
-            "STEAM ACCOUNT YA EXISTE:",
-            existing_steam_account.id
-        )
-
         # Ya pertenece a este usuario
         if existing_steam_account.user_id == user.id:
-
-            print("STEAM YA ESTABA VINCULADA A ESTE USUARIO")
 
             session.pop("steam_link_user_id", None)
 
@@ -680,14 +754,12 @@ def steam_callback():
             )
 
         # Pertenece a otro usuario
-        print("STEAM PERTENECE A OTRO USUARIO")
 
         return jsonify({
             "error": "This Steam account is already linked to another user"
         }), 400
 
     # Crear nueva vinculación
-    print("CREANDO STEAM ACCOUNT")
 
     steam_account = SteamAccount(
         steam_id=steam_id,
@@ -696,11 +768,6 @@ def steam_callback():
 
     db.session.add(steam_account)
     db.session.commit()
-
-    print(
-        "STEAM ACCOUNT GUARDADA:",
-        steam_account.id
-    )
 
     session.pop("steam_link_user_id", None)
 
@@ -770,11 +837,7 @@ def unlink_steam():
 @jwt_required()
 def get_steam_profile():
 
-    print("ENTRO EN STEAM PROFILE")
-
     user_id = get_jwt_identity()
-
-    print("JWT USER ID:", user_id)
 
     user = db.session.get(User, user_id)
 

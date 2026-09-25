@@ -161,7 +161,8 @@ class UserAchievement(db.Model):
             "user_id": self.user_id,
             "unlocked": self.unlocked,
             "unlocked_at": self.unlocked_at.isoformat() if self.unlocked_at else None,
-            "achievement": self.achievement.serialize()
+            "achievement": self.achievement.serialize(),
+            "game_name": self.achievement.game.name if self.achievement else None
         }
 
 class Favorite(db.Model):
