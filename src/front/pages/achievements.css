@@ -130,6 +130,37 @@
     color: var(--text-dim);
 }
 
+/*scroll*/
+.sv-game-search-results {
+    max-height: 400px;
+    overflow-y: auto;
+
+    /* Scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+}
+
+.sv-game-search-results {
+    max-height: 400px;
+    overflow-y: auto;
+
+    /* Scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+}
+
+.sv-game-search-results::-webkit-scrollbar {
+    width: 20px;
+}
+
+.sv-game-search-results::-webkit-scrollbar-track {
+    background: red;
+}
+
+.sv-game-search-results::-webkit-scrollbar-thumb {
+    background: yellow;
+}
+
 
 
 
