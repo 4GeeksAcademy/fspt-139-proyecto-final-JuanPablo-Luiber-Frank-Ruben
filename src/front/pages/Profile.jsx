@@ -11,6 +11,14 @@ const FILTERS = [
     { key: "recent", label: "Más jugados" },
 ];
 
+function timeAgo(dateStr) {
+    if (!dateStr) return "";
+    const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+    if (days <= 0) return "Hoy";
+    if (days === 1) return "Ayer";
+    return `Hace ${days} días`;
+}
+
 export const Profile = () => {
 
     const [steamAccount, setSteamAccount] = useState(null);
@@ -373,24 +381,88 @@ export const Profile = () => {
             0
         );
 
+        const totalAchievements = games.reduce(
+            (sum, userGame) => sum + (userGame.achievements_unlocked || 0),
+            0
+        );
+
         return {
             games: games.length,
             hours: Math.round(totalMinutes / 60),
             friends: friends.length,
+            achievements: totalAchievements,
         };
 
     }, [games, friends]);
 
+    // juego más jugado, para la cinta de estadísticas
+    const mostPlayedGame = useMemo(() => {
+        if (games.length === 0) return null;
+        return [...games].sort((a, b) => b.playtime_forever - a.playtime_forever)[0];
+    }, [games]);
+
+    const tickerItems = [
+        mostPlayedGame && { icon: "fa-solid fa-fire", text: `Más jugado: ${mostPlayedGame.game.name}` },
+        { icon: "fa-solid fa-gamepad", text: `${stats.games} juegos en la biblioteca` },
+        { icon: "fa-solid fa-clock", text: `${stats.hours} horas jugadas en total` },
+        { icon: "fa-solid fa-trophy", text: `${stats.achievements} logros desbloqueados` },
+        { icon: "fa-solid fa-users", text: `${stats.friends} amigos conectados` },
+    ].filter(Boolean);
+
+
+    // ==========================================
+    // ACTIVIDAD: mis últimos logros y los de mis amigos
+    // ==========================================
+    const [myAchievements, setMyAchievements] = useState([]);
+    const [friendAchievements, setFriendAchievements] = useState([]);
+
+    useEffect(() => {
+
+        if (!authToken) {
+            return;
+        }
+
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me/achievements?limit=8`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+        })
+            .then((res) => res.json())
+            .then((data) => setMyAchievements(data.achievements || []))
+            .catch(() => {});
+
+    }, [authToken, almostKey]);
+
+    useEffect(() => {
+
+        if (!authToken || friends.length === 0) {
+            setFriendAchievements([]);
+            return;
+        }
+
+        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+        const headers = { Authorization: `Bearer ${authToken}` };
+
+        Promise.all(
+            friends.map((friend) =>
+                fetch(`${backendUrl}/api/friends/${friend.id}/achievements?limit=2`, { headers })
+                    .then((res) => res.json())
+                    .then((data) => (data.achievements || []).map((ua) => ({ ...ua, friend })))
+                    .catch(() => [])
+            )
+        ).then((lists) => {
+            const merged = lists.flat();
+            merged.sort((a, b) => (b.unlocked_at || "").localeCompare(a.unlocked_at || ""));
+            setFriendAchievements(merged.slice(0, 6));
+        });
+
+    }, [authToken, friends]);
+
     const filteredGames = useMemo(() => {
 
-        let result = games;
+        // más jugados primero: son los que tienen logros sincronizados
+        let result = [...games].sort((a, b) => b.playtime_forever - a.playtime_forever);
 
         if (filter === "favorites") {
             result = result.filter((userGame) => favorites.includes(userGame.game.appid));
-        }
-
-        if (filter === "recent") {
-            result = [...result].sort((a, b) => b.playtime_forever - a.playtime_forever);
         }
 
         return result.slice(0, 8);
@@ -405,8 +477,6 @@ export const Profile = () => {
             <header className="sv-overview">
 
                 <div className="container">
-
-                    <div className="profile-label">TROPHY HUNTER</div>
 
                     <div className="row align-items-center g-4">
 
@@ -461,9 +531,26 @@ export const Profile = () => {
                             <div className="sv-stat-label">Amigos</div>
                         </div>
 
+                        <div className="sv-stat-tile">
+                            <div className="sv-stat-value">{stats.achievements}</div>
+                            <div className="sv-stat-label">Logros</div>
+                        </div>
+
                     </div>
 
                 </div>
+
+                {tickerItems.length > 0 && (
+                    <div className="sv-ticker">
+                        <div className="sv-ticker-track">
+                            {[...tickerItems, ...tickerItems].map((item, i) => (
+                                <span className="sv-ticker-item" key={i}>
+                                    <i className={item.icon}></i> {item.text}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
             </header>
 
@@ -692,6 +779,117 @@ export const Profile = () => {
                                 <Link to="/games" className="btn sv-btn-outline">
                                     Ver todos los juegos <i className="fa-solid fa-arrow-right ms-1"></i>
                                 </Link>
+
+                            </div>
+
+                        )}
+
+
+                        {/* ACTIVIDAD */}
+
+                        {(myAchievements.length > 0 || friendAchievements.length > 0) && (
+
+                            <div className="mt-5">
+
+                                <p className="sv-label">ACTIVIDAD</p>
+                                <h2 className="sv-h2 mb-4">
+                                    ÚLTIMOS <span style={{ color: "var(--accent)" }}>MOVIMIENTOS</span>
+                                </h2>
+
+                                <div className="row g-4">
+
+                                    <div className="col-lg-6">
+
+                                        <h6 className="sv-hint mb-3">
+                                            <i className="fa-solid fa-trophy me-2"></i>MIS ÚLTIMOS LOGROS
+                                        </h6>
+
+                                        {myAchievements.length === 0 && (
+                                            <p className="sv-empty">
+                                                <i className="fa-solid fa-trophy"></i>
+                                                Aún no tienes logros recientes.
+                                            </p>
+                                        )}
+
+                                        <div className="d-flex flex-column gap-2">
+
+                                            {myAchievements.map((ua) => (
+
+                                                <div className="sv-feed-item" key={ua.id}>
+
+                                                    {ua.achievement.image_url ? (
+                                                        <img
+                                                            className="sv-feed-icon"
+                                                            src={ua.achievement.image_url}
+                                                            alt=""
+                                                            onError={(e) => { e.target.style.opacity = 0; }}
+                                                        />
+                                                    ) : (
+                                                        <div className="sv-feed-icon d-flex align-items-center justify-content-center">
+                                                            <i className="fa-solid fa-trophy"></i>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex-grow-1">
+                                                        <div className="sv-feed-text">
+                                                            <strong>{ua.achievement.name}</strong>
+                                                        </div>
+                                                        <div className="sv-hint">{ua.game_name}</div>
+                                                    </div>
+
+                                                    <div className="sv-feed-time">{timeAgo(ua.unlocked_at)}</div>
+
+                                                </div>
+
+                                            ))}
+
+                                        </div>
+
+                                    </div>
+
+                                    <div className="col-lg-6">
+
+                                        <h6 className="sv-hint mb-3">
+                                            <i className="fa-solid fa-users me-2"></i>LOGROS DE TUS AMIGOS
+                                        </h6>
+
+                                        {friendAchievements.length === 0 && (
+                                            <p className="sv-empty">
+                                                <i className="fa-solid fa-users"></i>
+                                                Todavía no hay actividad de tus amigos.
+                                            </p>
+                                        )}
+
+                                        <div className="d-flex flex-column gap-2">
+
+                                            {friendAchievements.map((ua) => (
+
+                                                <div className="sv-feed-item" key={`${ua.friend.id}-${ua.id}`}>
+
+                                                    <img
+                                                        className="sv-feed-avatar"
+                                                        src={ua.friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(ua.friend.nickname)}`}
+                                                        alt={ua.friend.nickname}
+                                                    />
+
+                                                    <div className="flex-grow-1">
+                                                        <div className="sv-feed-text">
+                                                            <strong>{ua.friend.nickname}</strong> desbloqueó <strong>{ua.achievement.name}</strong>
+                                                        </div>
+                                                        <div className="sv-hint">{ua.game_name}</div>
+                                                    </div>
+
+                                                    <div className="sv-feed-time">{timeAgo(ua.unlocked_at)}</div>
+
+                                                </div>
+
+                                            ))}
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
 
                             </div>
 

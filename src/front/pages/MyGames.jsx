@@ -31,10 +31,6 @@ export const MyGames = () => {
     const [ error, setError ] = useState("");
     const [ filter, setFilter ] = useState("all");
     const [ search, setSearch ] = useState("");
-    
-    const [ form, setForm ] = useState({ appid: "", name: "", img_icon_url: "", playtime_forever: ""});
-    const [ formError, setFormError ] = useState("");
-    const [ saving, setSaving ] = useState(false);
 
     //almacenamos el token en el loalstorage
 
@@ -79,47 +75,6 @@ export const MyGames = () => {
 		return { games: userGames.length, hours: Math.round( totalMinutes / 60 ) };
 	}, [ userGames ]);
 
-    const handleFormChange = ( field ) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
-
-    const handleAddGame = async (e) => {
-		e.preventDefault();
-		setFormError("");
-
-        const appid = Number(form.appid);
-		if (!appid || !form.name.trim()) {
-			setFormError("El AppID y el nombre del juego son obligatorios.");
-			return;
-		}
-
-        		setSaving(true);
-		try {
-			const res = await fetch(`${backendUrl}/api/users/${userId}/games`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${token}`,
-				},
-				body: JSON.stringify({
-					games: [{
-						appid,
-						name: form.name.trim(),
-						img_icon_url: form.img_icon_url.trim() || null,
-						playtime_forever: Number(form.playtime_forever) || 0,
-					}],
-				}),
-			});
-            const data = await res.json();
-            if (!res.ok ) throw new Error ( data.error || "No se pudo añadir el juego");
-
-            setForm({ appid: "", name: "", img_icon_url: "", playtime_forever: "" });
-			loadGames();
-		    } catch (err) {
-			setFormError(err.message);
-		    } finally {
-			setSaving(false);
-		    }
-	};
-
 	if (!token) {
 		return (
 			<div className="container text-center py-5">
@@ -150,44 +105,6 @@ export const MyGames = () => {
 				</div>
 			</header>
 
-			{/* parte de añadir juegos */}
-
-            <section className="sv-panel border-top border-bottom py-4">
-				<div className="container">
-					<h2 className="h5 fw-bold mb-3">Añadir un juego</h2>
-
-					{formError && <div className="alert alert-danger py-2">{formError}</div>}
-
-					<form className="row g-2 align-items-end" onSubmit={handleAddGame}>
-						<div className="col-6 col-md-2">
-							<label className="form-label small">AppID</label>
-							<input type="number" className="form-control" placeholder="730" required
-								value={form.appid} onChange={handleFormChange("appid")} />
-						</div>
-						<div className="col-12 col-md-4">
-							<label className="form-label small">Nombre</label>
-							<input type="text" className="form-control" placeholder="Counter-Strike 2" required
-								value={form.name} onChange={handleFormChange("name")} />
-						</div>
-						<div className="col-12 col-md-3">
-							<label className="form-label small">Imagen (opcional)</label>
-							<input type="text" className="form-control" placeholder="https://..."
-								value={form.img_icon_url} onChange={handleFormChange("img_icon_url")} />
-						</div>
-						<div className="col-6 col-md-2">
-							<label className="form-label small">Minutos jugados</label>
-							<input type="number" className="form-control" placeholder="0"
-								value={form.playtime_forever} onChange={handleFormChange("playtime_forever")} />
-						</div>
-						<div className="col-12 col-md-1">
-							<button type="submit" className="btn btn-danger w-100" disabled={saving}>
-								{saving ? "…" : <i className="fa-solid fa-plus"></i>}
-							</button>
-						</div>
-					</form>
-				</div>
-			</section>
-
 			{/* get para los juegos */}
 
 			<section className="container py-5">
@@ -208,7 +125,7 @@ export const MyGames = () => {
 
 				<input
 					type="text"
-					className="form-control form-control-sm mb-4 ms-auto"
+					className="form-control sv-ach-select form-control-sm mb-4 ms-auto"
 					style={{ maxWidth: 220 }}
 					placeholder="Buscar juego..."
 					value={search}
@@ -244,10 +161,36 @@ export const MyGames = () => {
 									/>
 									<div className="card-body">
 										<h3 className="h6 card-title text-truncate" title={ug.game.name}>{ug.game.name}</h3>
-										<p className="card-text small sv-text-dim mb-0">
+										<p className="card-text small sv-text-dim mb-2">
 											<i className="fa-regular fa-clock"></i> {Math.round((ug.playtime_forever / 60) * 10) / 10} h jugadas
 										</p>
-										<Link to={`/achievements?appid=${ug.game.appid}`} className="btn btn-sm sv-btn-outline mt-2">
+
+										{ug.achievements_total > 0 && (
+											<>
+												<div className="d-flex justify-content-between mb-1 small">
+													<span className="sv-text-dim">
+														{ug.achievements_unlocked}/{ug.achievements_total} logros
+													</span>
+													<span className="fw-bold">
+														{Math.round(ug.achievement_percentage)}%
+													</span>
+												</div>
+												<div
+													className="sv-progress mb-2"
+													role="progressbar"
+													aria-valuenow={Math.round(ug.achievement_percentage)}
+													aria-valuemin="0"
+													aria-valuemax="100"
+												>
+													<div
+														className="sv-progress-fill"
+														style={{ width: `${ug.achievement_percentage}%` }}
+													></div>
+												</div>
+											</>
+										)}
+
+										<Link to={`/achievements?appid=${ug.game.appid}`} className="btn btn-sm sv-btn-outline">
 											<i className="fa-solid fa-trophy"></i> Ver logros
 										</Link>
 									</div>
@@ -259,7 +202,7 @@ export const MyGames = () => {
 
 				{!loading && !error && filteredGames.length === 0 && (
 					<p className="text-center sv-text-dim py-4">
-						{userGames.length === 0 ? "Todavía no tienes juegos. Añade uno arriba." : "No hay juegos que coincidan con este filtro."}
+						{userGames.length === 0 ? "Todavía no tienes juegos. Sincroniza tu cuenta de Steam desde tu perfil." : "No hay juegos que coincidan con este filtro."}
 					</p>
 				)}
 			</section>

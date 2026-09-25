@@ -10,6 +10,10 @@ function getUserIdFromToken(token) {
     }
 }
 
+function removeAccents(text) {
+    return text.normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
 function formatDate(unixSeconds) {
     return new Date(unixSeconds * 1000).toLocaleDateString("es-ES", {
         day: "2-digit",
@@ -32,11 +36,23 @@ export const Achievements = () => {
     const [detailLoading, setDetailLoading] = useState(false);
     const [error, setError] = useState("");
 
-    // juegos más jugados primero: es más probable que tengan logros
+    // orden alfabético para el desplegable
+    const [search, setSearch] = useState("");
+
     const sortedGames = useMemo(
-        () => [...userGames].sort((a, b) => b.playtime_forever - a.playtime_forever),
+        () =>
+            [...userGames].sort((a, b) =>
+                a.game.name.localeCompare(b.game.name, "es", { sensitivity: "base" })
+            ),
         [userGames]
     );
+
+    // filtramos por lo que el cliente escriba en el buscador
+    const filteredGames = useMemo(() => {
+        const q = removeAccents(search.trim().toLowerCase());
+        if (!q) return sortedGames;
+        return sortedGames.filter((ug) => removeAccents(ug.game.name.toLowerCase()).includes(q));
+    }, [sortedGames, search]);
 
     useEffect(() => {
         if (!token || !userId) {
@@ -57,11 +73,15 @@ export const Achievements = () => {
             .finally(() => setLoading(false));
     }, [token, userId, backendUrl]);
 
+    // al entrar, se abre el juego más jugado (sin depender del orden del desplegable)
     useEffect(() => {
-        if (!selectedAppid && sortedGames.length) {
-            setSelectedAppid(String(sortedGames[0].game.appid));
+        if (!selectedAppid && userGames.length) {
+            const mostPlayed = [...userGames].sort(
+                (a, b) => b.playtime_forever - a.playtime_forever
+            )[0];
+            setSelectedAppid(String(mostPlayed.game.appid));
         }
-    }, [sortedGames, selectedAppid]);
+    }, [userGames, selectedAppid]);
 
     useEffect(() => {
         if (!selectedAppid || !token) return;
@@ -126,12 +146,22 @@ export const Achievements = () => {
                 {userGames.length > 0 && (
                     <div className="row mb-3">
                         <div className="col-md-5">
+                            <input
+                                type="text"
+                                className="form-control sv-ach-select mb-2"
+                                placeholder="Buscar juego..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
                             <select
                                 className="form-select sv-ach-select"
                                 value={selectedAppid}
                                 onChange={(e) => setSelectedAppid(e.target.value)}
                             >
-                                {sortedGames.map((ug) => (
+                                {filteredGames.length === 0 && (
+                                    <option value="" disabled>Sin resultados</option>
+                                )}
+                                {filteredGames.map((ug) => (
                                     <option key={ug.game.appid} value={ug.game.appid}>{ug.game.name}</option>
                                 ))}
                             </select>
