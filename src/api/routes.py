@@ -4,7 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
 from api.models import db, User, Game, UserGame, SteamAccount, Favorite, Achievement, UserAchievement
 from api.utils import generate_sitemap, APIException
-from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement
+from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement, get_global_achievements, get_achievement_rarity
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
@@ -363,13 +363,6 @@ def steam_login():
 
 
 
-
-
-
-
-
-
-
 def sync_game_achievements(user_id, game, achievements):
     unlocked_achievements = 0
 
@@ -655,12 +648,75 @@ def sync_steam():
             )
 
             user_game.achievement_percentage = percentage
+            sync_global_achievement_percentages(game)
 
         else:
 
             user_game.achievements_total = 0
             user_game.achievements_unlocked = 0
             user_game.achievement_percentage = 0
+
+            # ==========================================
+            # 7b. GUARDAR LOGROS INDIVIDUALES
+            # ==========================================
+
+            for steam_achievement in achievements:
+
+                mapped_achievement = map_steam_achievement(steam_achievement)
+                achievement_name = mapped_achievement.get("name")
+
+                if not achievement_name:
+                    continue
+
+                achievement_name = achievement_name[:120]
+
+                achievement = db.session.execute(
+                    db.select(Achievement).where(
+                        Achievement.game_id == game.id,
+                        Achievement.name == achievement_name
+                    )
+                ).scalar_one_or_none()
+
+                if not achievement:
+
+                    achievement = Achievement(
+                        game_id=game.id,
+                        name=achievement_name,
+                        description=(mapped_achievement.get("description") or "")[:500],
+                        image_url=mapped_achievement.get("icon")
+                    )
+
+                    db.session.add(achievement)
+                    db.session.flush()
+
+                user_achievement = db.session.execute(
+                    db.select(UserAchievement).where(
+                        UserAchievement.user_id == user_id,
+                        UserAchievement.achievement_id == achievement.id
+                    )
+                ).scalar_one_or_none()
+
+                if not user_achievement:
+
+                    user_achievement = UserAchievement(
+                        user_id=user_id,
+                        achievement_id=achievement.id
+                    )
+
+                    db.session.add(user_achievement)
+
+                user_achievement.unlocked = mapped_achievement.get(
+                    "unlocked", False
+                )
+
+                unlocked_ts = mapped_achievement.get("unlocked_at")
+
+                if user_achievement.unlocked and unlocked_ts:
+                    user_achievement.unlocked_at = datetime.fromtimestamp(
+                        unlocked_ts
+                    ).date()
+                elif not user_achievement.unlocked:
+                    user_achievement.unlocked_at = None
 
     # ==========================================
     # 8. GUARDAR CAMBIOS
@@ -901,7 +957,56 @@ def get_achievements(appid):
     if error:
         return jsonify({"error": error}), 502
 
-    mapped_achievements = [map_steam_achievement(a) for a in achievements]
+    # ==========================================
+    # BUSCAR GAME
+    # ==========================================
+
+    game = db.session.execute(
+        db.select(Game).where(
+            Game.appid == appid
+        )
+    ).scalar_one_or_none()
+
+    if not game:
+        return jsonify({
+            "error": "Game not found"
+        }), 404
+
+    # ==========================================
+    # MAPEAR LOGROS
+    # ==========================================
+
+    mapped_achievements = []
+
+    for achievement in achievements:
+
+        mapped = map_steam_achievement(achievement)
+
+        achievement_name = mapped.get("name")
+
+        # Buscar el logro correspondiente en nuestra BD
+        db_achievement = db.session.execute(
+            db.select(Achievement).where(
+                Achievement.game_id == game.id,
+                Achievement.name == achievement_name
+            )
+        ).scalar_one_or_none()
+
+        # Añadir porcentaje global si existe
+        if db_achievement:
+            mapped["global_percentage"] = (
+                db_achievement.global_percentage
+            )
+
+            mapped["rarity"] = get_achievement_rarity(
+                db_achievement.global_percentage
+            )
+
+        else:
+            mapped["global_percentage"] = None
+            mapped["rarity"] = None
+
+        mapped_achievements.append(mapped)
 
     return jsonify({"achievements": mapped_achievements}), 200
 
@@ -1047,3 +1152,43 @@ def remove_favorite(appid):
     db.session.delete(existing)
     db.session.commit()
     return jsonify({"msg": "Removed from favorites"}), 200
+
+
+
+def sync_global_achievement_percentages(game):
+    
+    global_achievements, error = get_global_achievements(
+        game.appid
+    )
+
+    if error:
+        return error
+
+    for global_achievement in global_achievements:
+
+        achievement_name = global_achievement.get("name")
+        percent = global_achievement.get("percent")
+
+        if not achievement_name:
+            continue
+
+        if percent is None:
+            continue
+
+        achievement = db.session.execute(
+            db.select(Achievement).where(
+                Achievement.game_id == game.id,
+                Achievement.name == achievement_name
+            )
+        ).scalar_one_or_none()
+
+        if not achievement:
+            continue
+
+        try:
+            achievement.global_percentage = float(percent)
+
+        except (TypeError, ValueError):
+            continue
+
+    return None
