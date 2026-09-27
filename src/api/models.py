@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from sqlalchemy import String, Boolean, Date, ForeignKey, Table, Column, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from flask_bcrypt import generate_password_hash, check_password_hash
@@ -189,7 +189,10 @@ class Message(db.Model):
     sender_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
     receiver_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
     content: Mapped[str] = mapped_column(String(1000), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        nullable=False
+    )
     read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     def serialize(self):
@@ -198,6 +201,6 @@ class Message(db.Model):
             "sender_id": self.sender_id,
             "receiver_id": self.receiver_id,
             "content": self.content,
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at.isoformat() + "Z",
             "read": self.read
         }
