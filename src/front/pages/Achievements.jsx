@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import "./achievements.css"
 
@@ -39,6 +39,26 @@ export const Achievements = () => {
     // orden alfabético para el desplegable
     const [search, setSearch] = useState("");
     const [showResults, setShowResults] = useState(false);
+    const searchRef = useRef(null);
+
+    // cerrar la lista al hacer clic fuera del buscador o pulsar Escape
+    useEffect(() => {
+        if (!showResults) return;
+        const handleClick = (e) => {
+            if (searchRef.current && !searchRef.current.contains(e.target)) {
+                setShowResults(false);
+            }
+        };
+        const handleKey = (e) => {
+            if (e.key === "Escape") setShowResults(false);
+        };
+        document.addEventListener("mousedown", handleClick);
+        document.addEventListener("keydown", handleKey);
+        return () => {
+            document.removeEventListener("mousedown", handleClick);
+            document.removeEventListener("keydown", handleKey);
+        };
+    }, [showResults]);
 
     const sortedGames = useMemo(
         () =>
@@ -148,7 +168,7 @@ export const Achievements = () => {
                     <div className="row mb-3">
                         <div className="col-md-6">
 
-                            <div className="sv-game-search">
+                            <div className="sv-game-search" ref={searchRef}>
 
                                 <input
                                     type="text"
@@ -252,7 +272,7 @@ export const Achievements = () => {
 
                                                 <div className="sv-ach-global">
 
-                                                    <i className="fa-thin fa-earth-americas" style={{ color: "rgb(255, 0, 106)" }}></i>{" "}
+                                                    <i className="fa-solid fa-earth-americas" style={{ color: "rgb(255, 0, 106)" }}></i>{" "}
                                                     {a.global_percentage}%
                                                     {" "}
                                                     de jugadores lo han conseguido

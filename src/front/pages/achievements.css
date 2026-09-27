@@ -134,15 +134,7 @@
 .sv-game-search-results {
     max-height: 400px;
     overflow-y: auto;
-
-    /* Scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: var(--accent) transparent;
-}
-
-.sv-game-search-results {
-    max-height: 400px;
-    overflow-y: auto;
+    overscroll-behavior: contain;
 
     /* Scrollbar */
     scrollbar-width: thin;
@@ -150,15 +142,16 @@
 }
 
 .sv-game-search-results::-webkit-scrollbar {
-    width: 20px;
+    width: 6px;
 }
 
 .sv-game-search-results::-webkit-scrollbar-track {
-    background: red;
+    background: transparent;
 }
 
 .sv-game-search-results::-webkit-scrollbar-thumb {
-    background: yellow;
+    background: var(--accent);
+    border-radius: 3px;
 }
 
 

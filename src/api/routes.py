@@ -656,68 +656,6 @@ def sync_steam():
             user_game.achievements_unlocked = 0
             user_game.achievement_percentage = 0
 
-            # ==========================================
-            # 7b. GUARDAR LOGROS INDIVIDUALES
-            # ==========================================
-
-            for steam_achievement in achievements:
-
-                mapped_achievement = map_steam_achievement(steam_achievement)
-                achievement_name = mapped_achievement.get("name")
-
-                if not achievement_name:
-                    continue
-
-                achievement_name = achievement_name[:120]
-
-                achievement = db.session.execute(
-                    db.select(Achievement).where(
-                        Achievement.game_id == game.id,
-                        Achievement.name == achievement_name
-                    )
-                ).scalar_one_or_none()
-
-                if not achievement:
-
-                    achievement = Achievement(
-                        game_id=game.id,
-                        name=achievement_name,
-                        description=(mapped_achievement.get("description") or "")[:500],
-                        image_url=mapped_achievement.get("icon")
-                    )
-
-                    db.session.add(achievement)
-                    db.session.flush()
-
-                user_achievement = db.session.execute(
-                    db.select(UserAchievement).where(
-                        UserAchievement.user_id == user_id,
-                        UserAchievement.achievement_id == achievement.id
-                    )
-                ).scalar_one_or_none()
-
-                if not user_achievement:
-
-                    user_achievement = UserAchievement(
-                        user_id=user_id,
-                        achievement_id=achievement.id
-                    )
-
-                    db.session.add(user_achievement)
-
-                user_achievement.unlocked = mapped_achievement.get(
-                    "unlocked", False
-                )
-
-                unlocked_ts = mapped_achievement.get("unlocked_at")
-
-                if user_achievement.unlocked and unlocked_ts:
-                    user_achievement.unlocked_at = datetime.fromtimestamp(
-                        unlocked_ts
-                    ).date()
-                elif not user_achievement.unlocked:
-                    user_achievement.unlocked_at = None
-
     # ==========================================
     # 8. GUARDAR CAMBIOS
     # ==========================================
