@@ -85,3 +85,56 @@ def map_steam_achievement(achievement):
         "unlocked": achievement.get("unlocked", False),
         "unlocked_at": achievement.get("unlockedTimestamp") or None
     }
+
+def get_global_achievements(appid):
+    api_key = os.getenv("API_KEY")
+
+    if not api_key:
+        return None, "Steam API key is not configured"
+
+    url = (
+        f"https://api.steamapis.com/v2/steam/apps/"
+        f"{appid}/global-achievements"
+    )
+
+    try:
+        response = requests.get(
+            url,
+            headers={
+                "x-api-key": api_key
+            }
+        )
+
+    except requests.exceptions.RequestException:
+        return None, "Could not connect to SteamApis"
+
+    if response.status_code != 200:
+        return None, (
+            f"SteamApis returned an error: "
+            f"{response.status_code}"
+        )
+
+    data = response.json()
+
+    return data.get("result", []), None
+
+#funcion que determina la rareza de un logro
+
+def get_achievement_rarity(global_percentage):
+
+    if global_percentage is None:
+        return None
+
+    if global_percentage <= 5:
+        return "legendary"
+
+    if global_percentage < 30:
+        return "ultra_rare"
+
+    if global_percentage < 50:
+        return "rare"
+
+    if global_percentage < 70:
+        return "uncommon"
+
+    return "common"

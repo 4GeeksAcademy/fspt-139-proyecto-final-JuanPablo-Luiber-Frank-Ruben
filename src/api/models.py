@@ -85,6 +85,7 @@ class Achievement(db.Model):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     image_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    global_percentage: Mapped[float] = mapped_column(nullable=True)
     
     game_id: Mapped[int] = mapped_column(ForeignKey("game.id"), nullable=False)
     user_achievements: Mapped[List["UserAchievement"]] = relationship("UserAchievement", back_populates="achievement")
@@ -97,6 +98,7 @@ class Achievement(db.Model):
             "name": self.name,
             "description": self.description,
             "image_url": self.image_url,
+            "global_percentage": self.global_percentage,
             "game_id": self.game_id
         }
     
