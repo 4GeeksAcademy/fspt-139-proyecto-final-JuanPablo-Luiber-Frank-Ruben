@@ -76,6 +76,32 @@ def get_steam_achievements(steam_id, appid):
     return combined, None
 
 
+def get_steam_friends(steam_id):
+
+    api_key = os.getenv("API_KEY")
+
+    if not api_key:
+        return None, "Steam API key is not configured"
+
+    url = f"https://api.steamapis.com/v2/steam/users/{steam_id}/friends"
+
+    try:
+        response = requests.get(url, headers={"x-api-key": api_key}, timeout=20)
+    except requests.exceptions.RequestException:
+        return None, "Could not connect to SteamApis"
+
+    if response.status_code != 200:
+        return None, f"SteamApis returned an error: {response.status_code}"
+
+    friends = response.json().get("result", [])
+
+    return [
+        str(friend.get("steamID"))
+        for friend in friends
+        if friend.get("relationship") == "friend" and friend.get("steamID")
+    ], None
+
+
 def map_steam_achievement(achievement):
     return {
         "name": achievement.get("name"),

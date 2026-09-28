@@ -2,9 +2,10 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
-from api.models import db, User, Game, UserGame, SteamAccount, Favorite, Achievement, UserAchievement
+from api.models import db, User, Game, UserGame, SteamAccount, Favorite, Achievement, UserAchievement, Message
 from api.utils import generate_sitemap, APIException
-from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement, get_global_achievements, get_achievement_rarity
+from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement, get_global_achievements, get_achievement_rarity, get_steam_friends
+from sqlalchemy import or_, and_, func
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
@@ -412,6 +413,12 @@ def sync_game_achievements(user_id, game, achievements):
 
             db.session.add(achievement)
             db.session.flush()
+
+        # nombre visible de Steam (también corrige logros guardados antes)
+        display_name = mapped_achievement.get("display_name")
+
+        if display_name:
+            achievement.display_name = display_name[:200]
 
         # ==========================================
         # BUSCAR O CREAR USER_ACHIEVEMENT
@@ -1130,3 +1137,200 @@ def sync_global_achievement_percentages(game):
             continue
 
     return None
+
+
+# ==========================================
+# CHAT: AMIGOS DE STEAM Y MENSAJES
+# ==========================================
+
+def are_friends(user, other):
+    return other in user.friendships or other in user.friends_of
+
+
+def conversation_filter(user_id, friend_id):
+    return or_(
+        and_(Message.sender_id == user_id, Message.receiver_id == friend_id),
+        and_(Message.sender_id == friend_id, Message.receiver_id == user_id)
+    )
+
+
+@api.route("/steam/friends/sync", methods=["POST"])
+@jwt_required()
+def sync_steam_friends():
+
+    user = db.session.get(User, get_jwt_identity())
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if not user.steam_account:
+        return jsonify({"error": "Steam account not linked"}), 400
+
+    steam_ids, error = get_steam_friends(user.steam_account.steam_id)
+
+    if error:
+        return jsonify({
+            "error": "No se pudo obtener tu lista de amigos de Steam. Comprueba que sea pública."
+        }), 502
+
+    accounts = []
+
+    if steam_ids:
+        accounts = db.session.execute(
+            db.select(SteamAccount).where(SteamAccount.steam_id.in_(steam_ids))
+        ).scalars().all()
+
+    added = 0
+
+    # en Steam la amistad es mutua: la guardamos en las dos direcciones
+    for account in accounts:
+
+        friend = account.user
+
+        if friend.id == user.id:
+            continue
+
+        if friend not in user.friendships:
+            user.friendships.append(friend)
+            added += 1
+
+        if user not in friend.friendships:
+            friend.friendships.append(user)
+
+    db.session.commit()
+
+    return jsonify({
+        "steam_friends": len(steam_ids),
+        "on_app": len(accounts),
+        "added": added
+    }), 200
+
+
+@api.route("/conversations", methods=["GET"])
+@jwt_required()
+def get_conversations():
+
+    user = db.session.get(User, get_jwt_identity())
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    friends = {friend.id: friend for friend in user.friendships + user.friends_of}
+
+    conversations = []
+
+    for friend in friends.values():
+
+        last_message = db.session.execute(
+            db.select(Message)
+            .where(conversation_filter(user.id, friend.id))
+            .order_by(Message.id.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+
+        unread = db.session.scalar(
+            db.select(func.count(Message.id)).where(
+                Message.sender_id == friend.id,
+                Message.receiver_id == user.id,
+                Message.read == False
+            )
+        )
+
+        conversations.append({
+            "friend": {
+                "id": friend.id,
+                "nickname": friend.nickname,
+                "avatar_url": friend.avatar_url
+            },
+            "last_message": last_message.serialize() if last_message else None,
+            "unread": unread
+        })
+
+    conversations.sort(
+        key=lambda c: (c["last_message"]["id"] if c["last_message"] else 0, c["friend"]["nickname"].lower()),
+        reverse=True
+    )
+
+    return jsonify({
+        "conversations": conversations,
+        "unread_total": sum(c["unread"] for c in conversations)
+    }), 200
+
+
+@api.route("/messages/<int:friend_id>", methods=["GET"])
+@jwt_required()
+def get_messages(friend_id):
+
+    user = db.session.get(User, get_jwt_identity())
+    friend = db.session.get(User, friend_id)
+
+    if not user or not friend:
+        return jsonify({"error": "User not found"}), 404
+
+    if not are_friends(user, friend):
+        return jsonify({"error": "This user is not your friend"}), 403
+
+    after = request.args.get("after", 0, type=int)
+
+    if after > 0:
+        messages = db.session.execute(
+            db.select(Message)
+            .where(conversation_filter(user.id, friend.id), Message.id > after)
+            .order_by(Message.id.asc())
+            .limit(100)
+        ).scalars().all()
+    else:
+        # primera carga: los últimos 50, en orden cronológico
+        messages = list(reversed(db.session.execute(
+            db.select(Message)
+            .where(conversation_filter(user.id, friend.id))
+            .order_by(Message.id.desc())
+            .limit(50)
+        ).scalars().all()))
+
+    unread_changed = False
+
+    for message in messages:
+        if message.receiver_id == user.id and not message.read:
+            message.read = True
+            unread_changed = True
+
+    if unread_changed:
+        db.session.commit()
+
+    return jsonify({"messages": [message.serialize() for message in messages]}), 200
+
+
+@api.route("/messages/<int:friend_id>", methods=["POST"])
+@jwt_required()
+def send_message(friend_id):
+
+    user = db.session.get(User, get_jwt_identity())
+    friend = db.session.get(User, friend_id)
+
+    if not user or not friend:
+        return jsonify({"error": "User not found"}), 404
+
+    if not are_friends(user, friend):
+        return jsonify({"error": "This user is not your friend"}), 403
+
+    data = request.get_json(silent=True) or {}
+    content = str(data.get("content", "")).strip()
+
+    if not content:
+        return jsonify({"error": "El mensaje no puede estar vacío"}), 400
+
+    if len(content) > 1000:
+        return jsonify({"error": "El mensaje no puede superar los 1000 caracteres"}), 400
+
+    message = Message(
+        sender_id=user.id,
+        receiver_id=friend.id,
+        content=content
+    )
+
+    db.session.add(message)
+    db.session.commit()
+
+    return jsonify({"message": message.serialize()}), 201
+

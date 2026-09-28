@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from sqlalchemy import String, Boolean, Date, ForeignKey, Table, Column, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from flask_bcrypt import generate_password_hash, check_password_hash
@@ -83,6 +83,7 @@ class Game(db.Model):
 class Achievement(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(200), nullable=True)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     image_url: Mapped[str] = mapped_column(String(500), nullable=True)
     global_percentage: Mapped[float] = mapped_column(nullable=True)
@@ -96,6 +97,7 @@ class Achievement(db.Model):
         return {
             "id": self.id,
             "name": self.name,
+            "display_name": self.display_name,
             "description": self.description,
             "image_url": self.image_url,
             "global_percentage": self.global_percentage,
@@ -181,7 +183,24 @@ class Favorite(db.Model):
     def serialize(self):
         return {"appid": self.appid}
 
-           
-        
 
+class Message(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sender_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    receiver_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    content: Mapped[str] = mapped_column(String(1000), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        nullable=False
+    )
+    read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "sender_id": self.sender_id,
+            "receiver_id": self.receiver_id,
+            "content": self.content,
+            "created_at": self.created_at.isoformat() + "Z",
+            "read": self.read
+        }
