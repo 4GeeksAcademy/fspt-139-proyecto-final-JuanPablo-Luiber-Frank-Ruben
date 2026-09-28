@@ -2,9 +2,12 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, redirect, session
+<<<<<<< HEAD
 from api.models import db, User, Game, UserGame, SteamAccount, Favorite, Achievement, UserAchievement
+=======
+from api.models import db, User, Game, UserGame, SteamAccount, Favorite
+>>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 from api.utils import generate_sitemap, APIException
-from api.steam_service import get_steam_games, map_steam_game, get_steam_achievements, map_steam_achievement
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import requests
 from urllib.parse import urlencode
@@ -213,7 +216,7 @@ def login():
         access_token = create_access_token(identity=str(existing_user.id))
         return jsonify({"msg": "logeado correctamente", "token": access_token}), 200
     else:
-        return jsonify({"error": "invalid email or password"}), 401
+         return jsonify({"msg": "invalid email or password"}), 401
 
 
 @api.route("/me", methods=["GET"])
@@ -303,8 +306,7 @@ def sync_user_games(user_id):
 
     db.session.commit()
 
-    return jsonify({"msg": "Games synced successfully"}), 201
-
+    return jsonify({"msg": "Games synced successfully"}), 201    
 
 @api.route("/users/<int:user_id>/games", methods=["GET"])
 @jwt_required()
@@ -362,6 +364,7 @@ def steam_login():
     }), 200
 
 
+<<<<<<< HEAD
 
 
 
@@ -687,6 +690,8 @@ def sync_steam():
     }), 200
 
 
+=======
+>>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 @api.route("/steam/callback", methods=["GET"])
 def steam_callback():
 
@@ -880,31 +885,36 @@ def get_steam_profile():
         "steam_profile": data
     }), 200
 
-
-@api.route("/steam/achievements/<int:appid>", methods=["GET"])
+@api.route("/favorites", methods=["GET"])
 @jwt_required()
-def get_achievements(appid):
+def get_favorites():
+    user_id = int(get_jwt_identity())
+    favs = db.session.execute(db.select(Favorite).where(Favorite.user_id == user_id)).scalars().all()
+    return jsonify({"favorites": [f.appid for f in favs]}), 200
 
-    user_id = get_jwt_identity()
+@api.route("/favorites/<int:appid>", methods=["POST"])
+@jwt_required()
+def add_favorite(appid):
+    user_id = int(get_jwt_identity())
+    existing = db.session.execute(db.select(Favorite).where(
+        Favorite.user_id == user_id, Favorite.appid == appid)).scalar_one_or_none()
+    if existing:
+        return jsonify({"msg": "Already a favorite"}), 200
 
-    user = db.session.get(User, user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+    db.session.add(Favorite(user_id=user_id, appid=appid))
+    db.session.commit()
+    return jsonify({"msg": "Added to favorites"}), 201
 
-    if not user.steam_account:
-        return jsonify({"error": "Steam account not linked"}), 400
+@api.route("/favorites/<int:appid>", methods=["DELETE"])
+@jwt_required()
+def remove_favorite(appid):
+    user_id = int(get_jwt_identity())
+    existing = db.session.execute(db.select(Favorite).where(
+        Favorite.user_id == user_id, Favorite.appid == appid)).scalar_one_or_none()
+    if not existing:
+        return jsonify({"error": "Favorite not found"}), 404
 
-    steam_id = user.steam_account.steam_id
-
-    achievements, error = get_steam_achievements(steam_id, appid)
-
-    if error:
-        return jsonify({"error": error}), 502
-
-    mapped_achievements = [map_steam_achievement(a) for a in achievements]
-
-    return jsonify({"achievements": mapped_achievements}), 200
-
+<<<<<<< HEAD
 
 @api.route("/steam/games/almost-completed", methods=["GET"])
 @jwt_required()
@@ -1047,3 +1057,8 @@ def remove_favorite(appid):
     db.session.delete(existing)
     db.session.commit()
     return jsonify({"msg": "Removed from favorites"}), 200
+=======
+    db.session.delete(existing)
+    db.session.commit()
+    return jsonify({"msg": "Removed from favorites"}), 200
+>>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d

@@ -29,9 +29,17 @@ export const Login = () => {
                 return;
             }
 
+<<<<<<< HEAD
             localStorage.setItem("token", data.token);
 
             navigate("/profile");
+=======
+
+            sessionStorage.setItem("token", data.token);
+
+
+            navigate("/private");
+>>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
         } catch (err) {
             setError("Could not connect to the backend");
@@ -89,7 +97,30 @@ export const Login = () => {
 
                     <p className="sv-auth-footer">¿No tienes cuenta? <Link to="/users">Regístrate</Link></p>
                 </div>
+<<<<<<< HEAD
             </div>
+=======
+
+                <div className="mb-3">
+                    <label className="form-label">Password</label>
+                    <input
+                        type="password"
+                        className="form-control"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                </div>
+
+                {error && <div className="alert alert-danger">{error}</div>}
+
+                <button type="submit" className="btn btn-primary w-100">Log in</button>
+            </form>
+
+            <p className="mt-3 text-center">
+                Don't have an account? <Link to="/signup">Sign up</Link>
+            </p>
+>>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
         </div>
     );
 };
