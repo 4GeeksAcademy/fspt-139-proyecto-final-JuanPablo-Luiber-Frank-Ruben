@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { AlmostCompletedGames } from "../components/AlmostCompletedGames";
 import { GameCard } from "../components/GameCard";
@@ -33,6 +33,7 @@ export const Profile = () => {
     const [steamPersona, setSteamPersona] = useState(null);
     const [friends, setFriends] = useState([]);
     const [filter, setFilter] = useState("all");
+    const [alphaAsc, setAlphaAsc] = useState(true); // true = A→Z, false = Z→A
     const [almostKey, setAlmostKey] = useState(0);
 
 
@@ -461,13 +462,19 @@ export const Profile = () => {
         // más jugados primero: son los que tienen logros sincronizados
         let result = [...games].sort((a, b) => b.playtime_forever - a.playtime_forever);
 
+        if (filter === "all") {
+            result = result.sort((a, b) =>
+                alphaAsc ? a.game.name.localeCompare(b.game.name) : b.game.name.localeCompare(a.game.name)
+            );
+        }
+
         if (filter === "favorites") {
             result = result.filter((userGame) => favorites.includes(userGame.game.appid));
         }
 
         return result.slice(0, 8);
 
-    }, [games, filter, favorites]);
+    }, [games, filter, favorites, alphaAsc]);
 
 
     return (
@@ -728,13 +735,24 @@ export const Profile = () => {
 
                                 {FILTERS.map((item) => (
 
-                                    <button
-                                        key={item.key}
-                                        className={`sv-filter-btn${filter === item.key ? " active" : ""}`}
-                                        onClick={() => setFilter(item.key)}
-                                    >
-                                        {item.label}
-                                    </button>
+                                    <Fragment key={item.key}>
+                                        <button
+                                            className={`sv-filter-btn${filter === item.key ? " active" : ""}`}
+                                            onClick={() => setFilter(item.key)}
+                                        >
+                                            {item.label}
+                                        </button>
+                                        {item.key === "all" && (
+                                            <button
+                                                className="sv-filter-btn"
+                                                onClick={() => setAlphaAsc((v) => !v)}
+                                                disabled={filter !== "all"}
+                                                title={alphaAsc ? "Orden A-Z" : "Orden Z-A"}
+                                            >
+                                                <i className={`fa-solid ${alphaAsc ? "fa-arrow-down-a-z" : "fa-arrow-down-z-a"}`}></i>
+                                            </button>
+                                        )}
+                                    </Fragment>
 
                                 ))}
 

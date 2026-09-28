@@ -114,18 +114,18 @@ export const MyGames = () => {
 			<section className="container py-5">
 				<div className="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
 					<h2 className="h4 fw-bold mb-0">Tu biblioteca</h2>
-					<div className="btn-group">
+					<div className="sv-filter-group">
 						{FILTERS.map((f) => (
 							<Fragment key={f.key}>
 								<button
-									className={`btn btn-sm ${filter === f.key ? "btn-danger" : "sv-btn-outline"}`}
+									className={`sv-filter-btn${filter === f.key ? " active" : ""}`}
 									onClick={() => setFilter(f.key)}
 								>
 									{f.label}
 								</button>
 								{f.key === "all" && (
 									<button
-										className="btn btn-sm sv-btn-outline"
+										className="sv-filter-btn"
 										onClick={() => setAlphaAsc((v) => !v)}
 										disabled={filter !== "all"}
 										title={alphaAsc ? "Orden A-Z" : "Orden Z-A"}
