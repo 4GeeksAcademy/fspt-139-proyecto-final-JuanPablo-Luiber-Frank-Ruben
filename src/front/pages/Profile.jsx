@@ -852,7 +852,7 @@ export const Profile = () => {
 
                                                     <div className="flex-grow-1">
                                                         <div className="sv-feed-text">
-                                                            <strong>{ua.achievement.name}</strong>
+                                                            <strong>{ua.achievement.display_name || ua.achievement.name}</strong>
                                                         </div>
                                                         <div className="sv-hint">{ua.game_name}</div>
                                                     </div>
@@ -894,7 +894,7 @@ export const Profile = () => {
 
                                                     <div className="flex-grow-1">
                                                         <div className="sv-feed-text">
-                                                            <strong>{ua.friend.nickname}</strong> desbloqueó <strong>{ua.achievement.name}</strong>
+                                                            <strong>{ua.friend.nickname}</strong> desbloqueó <strong>{ua.achievement.display_name || ua.achievement.name}</strong>
                                                         </div>
                                                         <div className="sv-hint">{ua.game_name}</div>
                                                     </div>
