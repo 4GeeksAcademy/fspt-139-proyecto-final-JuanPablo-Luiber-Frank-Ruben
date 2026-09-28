@@ -24,7 +24,6 @@ export const Profile = () => {
     const [steamAccount, setSteamAccount] = useState(null);
     const [steamMessage, setSteamMessage] = useState("");
     const [steamError, setSteamError] = useState("");
-<<<<<<< HEAD
     const [syncing, setSyncing] = useState(false);
     const [games, setGames] = useState([]);
     const [checkingSteam, setCheckingSteam] = useState(true);
@@ -81,8 +80,6 @@ export const Profile = () => {
 
         }
     };
-=======
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
 
     useEffect(() => {
@@ -132,7 +129,6 @@ export const Profile = () => {
     }, []);
 
 
-<<<<<<< HEAD
     // datos del usuario (nombre, email) y contador de amigos
     useEffect(() => {
 
@@ -155,8 +151,6 @@ export const Profile = () => {
 
     }, [authToken]);
 
-=======
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
     useEffect(() => {
 
@@ -177,6 +171,7 @@ export const Profile = () => {
 
     }, []);
 
+
     // ==========================================
     // VINCULAR STEAM
     // ==========================================
@@ -192,10 +187,12 @@ export const Profile = () => {
             return;
         }
 
-        const url = `${import.meta.env.VITE_BACKEND_URL}/api/steam/login`
+        const url = `${import.meta.env.VITE_BACKEND_URL}/api/steam/login`;
 
         try {
-            const response = await fetch(url,
+
+            const response = await fetch(
+                url,
                 {
                     method: "GET",
                     headers: {
@@ -208,9 +205,11 @@ export const Profile = () => {
             const data = await response.json();
 
             if (!response.ok) {
+
                 setSteamError(
                     data.error || data.msg || "No se pudo conectar con Steam"
                 );
+
                 return;
             }
 
@@ -230,7 +229,6 @@ export const Profile = () => {
     // ==========================================
     // DESVINCULAR STEAM
     // ==========================================
-
     const unlinkSteam = async () => {
 
         setSteamMessage("");
@@ -273,6 +271,7 @@ export const Profile = () => {
             }
 
             setSteamAccount(null);
+            setGames([]);
 
             setSteamMessage(
                 "Cuenta de Steam desvinculada correctamente"
@@ -290,7 +289,6 @@ export const Profile = () => {
 
 
     // ==========================================
-<<<<<<< HEAD
     // SINCRONIZAR STEAM
     // ==========================================
     const syncSteam = async () => {
@@ -361,8 +359,6 @@ export const Profile = () => {
 
 
     // ==========================================
-=======
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
     // OCULTAR STEAM ID
     // ==========================================
     const hideSteamId = (steamId) => {
@@ -375,7 +371,6 @@ export const Profile = () => {
     };
 
 
-<<<<<<< HEAD
     // ==========================================
     // RESUMEN Y FILTROS
     // ==========================================
@@ -474,8 +469,6 @@ export const Profile = () => {
 
     }, [games, filter, favorites]);
 
-=======
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
     return (
         <div className="profile-page">
@@ -559,17 +552,11 @@ export const Profile = () => {
                     </div>
                 )}
 
-<<<<<<< HEAD
             </header>
-=======
-
-                <div>
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
 
             <div className="container py-5">
 
-<<<<<<< HEAD
                 {/* MENSAJE DE ÉXITO */}
 
                 {steamMessage && (
@@ -786,13 +773,6 @@ export const Profile = () => {
 
 
                         {games.length > 8 && (
-=======
-                    <button onClick={unlinkSteam}>
-                        ❌ Desvincular Steam
-                    </button>
-
-                </div>
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
                             <div className="text-center mt-4">
 
@@ -922,5 +902,5 @@ export const Profile = () => {
             </div>
 
         </div>
-    )
-}
+    );
+};

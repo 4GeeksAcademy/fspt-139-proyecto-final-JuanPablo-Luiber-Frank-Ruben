@@ -39,6 +39,8 @@ class User(db.Model):
         back_populates="friendships"
     )
     games: Mapped[List["UserGame"]] = relationship("UserGame", back_populates="user")
+    achievements: Mapped[List["UserAchievement"]] = relationship("UserAchievement", back_populates="user")
+
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password).decode('utf-8')
@@ -67,6 +69,8 @@ class Game(db.Model):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     img_icon_url: Mapped[str] = mapped_column(String(500), nullable=True)
     user_games: Mapped[List["UserGame"]] = relationship("UserGame", back_populates="game")
+    achievements: Mapped[List["Achievement"]] = relationship("Achievement", back_populates="game")
+
 
     def serialize(self):
         return {
@@ -101,8 +105,6 @@ class Achievement(db.Model):
         }
     
        
-        
-
 class SteamAccount(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     steam_id: Mapped[str] = mapped_column(String(60), nullable=False, unique=True)
@@ -142,20 +144,22 @@ class UserGame(db.Model):
             "achievement_percentage": self.achievement_percentage,
             "game": self.game.serialize()
         }
-           
-class Favorite(db.Model):
-    __tablename__ = "favorite"
-    __table_args__ = (UniqueConstraint("user_id", "appid", name="uq_favorite_user_appid"),)
+
+class UserAchievement(db.Model):
+    __table_args__ = (
+        UniqueConstraint("user_id", "achievement_id", name="uq_user_achievement"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    appid: Mapped[int] = mapped_column(Integer, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.now, nullable=False)
+    achievement_id: Mapped[int] = mapped_column(ForeignKey("achievement.id"), nullable=False)
+    unlocked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    unlocked_at: Mapped[date] = mapped_column(Date, nullable=True)
 
-    user: Mapped["User"] = relationship("User", backref="favorites")
+    user: Mapped["User"] = relationship("User", back_populates="achievements")
+    achievement: Mapped["Achievement"] = relationship("Achievement", back_populates="user_achievements")
 
     def serialize(self):
-<<<<<<< HEAD
         return {
             "id": self.id,
             "user_id": self.user_id,

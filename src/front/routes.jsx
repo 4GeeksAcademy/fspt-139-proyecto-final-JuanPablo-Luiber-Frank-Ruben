@@ -12,7 +12,6 @@ import { Demo } from "./pages/Demo";
 import { Achievements } from "./pages/Achievements";
 import { Navbar } from "./components/Navbar";
 import { Profile } from "./pages/Profile";
-<<<<<<< HEAD
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
 import { MyGames } from "./pages/MyGames";
@@ -43,25 +42,5 @@ export const router = createBrowserRouter(
           <Route path="/404" element={<NotFound />} />
         </Route>
       </>
-=======
-
-export const router = createBrowserRouter(
-    createRoutesFromElements(
-    // CreateRoutesFromElements function allows you to build route elements declaratively.
-    // Create your routes here, if you want to keep the Navbar and Footer in all views, add your new routes inside the containing Route.
-    // Root, on the contrary, create a sister Route, if you have doubts, try it!
-    // Note: keep in mind that errorElement will be the default page when you don't get a route, customize that page to make your project more attractive.
-    // Note: The child paths of the Layout element replace the Outlet component with the elements contained in the "element" attribute of these child paths.
-
-      // Root Route: All navigation will start from here.
-      <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
-
-        {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
-        <Route path= "/" element={<Home />} />
-        <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
-        <Route path="/demo" element={<Demo />} />
-        <Route path="/profile" element={<Profile />} />
-      </Route>
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
     )
 );

@@ -1,12 +1,6 @@
-<<<<<<< HEAD
 import { useEffect, useMemo, useState, Fragment } from "react";
 import { Link } from "react-router-dom";
 import useFavorites from "../hooks/useFavorites";
-=======
-import { useEffect, useMemo, useState } from "react";
-import useFavorites from "../hooks/useFavorites";
-import useGlobalReducer from "../hooks/useGlobalReducer";
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
 const FILTERS = [
     {key: "all", label: "Todos"},
@@ -37,14 +31,7 @@ export const MyGames = () => {
     const [ error, setError ] = useState("");
     const [ filter, setFilter ] = useState("all");
     const [ search, setSearch ] = useState("");
-<<<<<<< HEAD
     const [ alphaAsc, setAlphaAsc ] = useState(true); // true = A→Z, false = Z→A
-=======
-    
-    const [ form, setForm ] = useState({ appid: "", name: "", img_icon_url: "", playtime_forever: ""});
-    const [ formError, setFormError ] = useState("");
-    const [ saving, setSaving ] = useState(false);
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
     //almacenamos el token en el loalstorage
 
@@ -85,11 +72,7 @@ export const MyGames = () => {
 		}
 		if (filter === "favorites") result = result.filter((ug) => favorites.includes(ug.game.appid));
 		return result;
-<<<<<<< HEAD
 	}, [ userGames, filter, search, favorites, alphaAsc ]);
-=======
-	}, [ userGames, filter, search, favorites ]);
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 
 	const stats = useMemo(() => {
 		const totalMinutes = userGames.reduce(( sum, ug ) => sum + ( ug.playtime_forever || 0 ), 0 );
@@ -125,49 +108,7 @@ export const MyGames = () => {
 					</div>
 				</div>
 			</header>
-<<<<<<< HEAD
 
-=======
-
-			{/* parte de añadir juegos */}
-
-            <section className="bg-black bg-opacity-25 border-top border-bottom border-secondary py-4">
-				<div className="container">
-					<h2 className="h5 fw-bold mb-3">Añadir un juego</h2>
-
-					{formError && <div className="alert alert-danger py-2">{formError}</div>}
-
-					<form className="row g-2 align-items-end" onSubmit={handleAddGame}>
-						<div className="col-6 col-md-2">
-							<label className="form-label small">AppID</label>
-							<input type="number" className="form-control" placeholder="730" required
-								value={form.appid} onChange={handleFormChange("appid")} />
-						</div>
-						<div className="col-12 col-md-4">
-							<label className="form-label small">Nombre</label>
-							<input type="text" className="form-control" placeholder="Counter-Strike 2" required
-								value={form.name} onChange={handleFormChange("name")} />
-						</div>
-						<div className="col-12 col-md-3">
-							<label className="form-label small">Imagen (opcional)</label>
-							<input type="text" className="form-control" placeholder="https://..."
-								value={form.img_icon_url} onChange={handleFormChange("img_icon_url")} />
-						</div>
-						<div className="col-6 col-md-2">
-							<label className="form-label small">Minutos jugados</label>
-							<input type="number" className="form-control" placeholder="0"
-								value={form.playtime_forever} onChange={handleFormChange("playtime_forever")} />
-						</div>
-						<div className="col-12 col-md-1">
-							<button type="submit" className="btn btn-danger w-100" disabled={saving}>
-								{saving ? "…" : <i className="fa-solid fa-plus"></i>}
-							</button>
-						</div>
-					</form>
-				</div>
-			</section>
-
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 			{/* get para los juegos */}
 
 			<section className="container py-5">
@@ -217,19 +158,11 @@ export const MyGames = () => {
 					<div className="row g-3">
 						{filteredGames.map((ug) => (
 							<div className="col-6 col-md-4 col-lg-3" key={ug.id}>
-<<<<<<< HEAD
 								<div className="card sv-card h-100 position-relative">
 
 									{/*Añadido el boton de favorito*/}
 
 									<button className={`btn btn-sm position-absolute top-0 end-0 m-2 ${favorites.includes(ug.game.appid) ? "btn-warning" : "sv-btn-outline"}`}
-=======
-								<div className="card bg-black text-light border-secondary h-100 position-relative">
-
-									{/*Añadido el boton de favorito*/}
-
-									<button className={`btn btn-sm position-absolute top-0 end-0 m-2 ${favorites.includes(ug.game.appid) ? "btn-warning" : "btn-outline-light"}`}
->>>>>>> 684bb2c0751350419ff909ef5965a90590cfa76d
 										onClick={() => toggleFavorite(ug.game.appid)} title="Marcar favorito">
 										<i className={favorites.includes(ug.game.appid) ? "fa-solid fa-star" : "fa-regular fa-star"}></i>
 									</button>
