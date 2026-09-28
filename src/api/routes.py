@@ -367,6 +367,46 @@ def steam_login():
 def sync_game_achievements(user_id, game, achievements):
     unlocked_achievements = 0
 
+    # ==========================================
+    # 1. TRAER TODOS LOS ACHIEVEMENTS DEL JUEGO
+    # ==========================================
+
+    existing_achievements = db.session.execute(
+        db.select(Achievement).where(
+            Achievement.game_id == game.id
+        )
+    ).scalars().all()
+
+    achievements_by_name = {
+        achievement.name: achievement
+        for achievement in existing_achievements
+    }
+
+    # ==========================================
+    # 2. TRAER USER ACHIEVEMENTS DEL JUEGO
+    # ==========================================
+
+    existing_user_achievements = db.session.execute(
+        db.select(UserAchievement)
+        .join(
+            Achievement,
+            UserAchievement.achievement_id == Achievement.id
+        )
+        .where(
+            UserAchievement.user_id == user_id,
+            Achievement.game_id == game.id
+        )
+    ).scalars().all()
+
+    user_achievements_by_achievement_id = {
+        user_achievement.achievement_id: user_achievement
+        for user_achievement in existing_user_achievements
+    }
+
+    # ==========================================
+    # 3. PROCESAR ACHIEVEMENTS
+    # ==========================================
+
     for steam_achievement in achievements:
 
         mapped_achievement = map_steam_achievement(
@@ -391,12 +431,9 @@ def sync_game_achievements(user_id, game, achievements):
         # BUSCAR O CREAR ACHIEVEMENT
         # ==========================================
 
-        achievement = db.session.execute(
-            db.select(Achievement).where(
-                Achievement.game_id == game.id,
-                Achievement.name == achievement_name
-            )
-        ).scalar_one_or_none()
+        achievement = achievements_by_name.get(
+            achievement_name
+        )
 
         if not achievement:
 
@@ -412,24 +449,48 @@ def sync_game_achievements(user_id, game, achievements):
             )
 
             db.session.add(achievement)
+
+            # necesitamos el ID para crear UserAchievement
             db.session.flush()
 
-        # nombre visible de Steam (también corrige logros guardados antes)
-        display_name = mapped_achievement.get("display_name")
+            achievements_by_name[
+                achievement_name
+            ] = achievement
+
+        else:
+
+            achievement.description = (
+                mapped_achievement.get(
+                    "description"
+                )
+            )
+
+            achievement.image_url = (
+                mapped_achievement.get(
+                    "icon"
+                )
+            )
+
+        # ==========================================
+        # NOMBRE VISIBLE
+        # ==========================================
+
+        display_name = mapped_achievement.get(
+            "display_name"
+        )
 
         if display_name:
             achievement.display_name = display_name[:200]
 
         # ==========================================
-        # BUSCAR O CREAR USER_ACHIEVEMENT
+        # BUSCAR O CREAR USER ACHIEVEMENT
         # ==========================================
 
-        user_achievement = db.session.execute(
-            db.select(UserAchievement).where(
-                UserAchievement.user_id == user_id,
-                UserAchievement.achievement_id == achievement.id
+        user_achievement = (
+            user_achievements_by_achievement_id.get(
+                achievement.id
             )
-        ).scalar_one_or_none()
+        )
 
         if not user_achievement:
 
@@ -441,12 +502,16 @@ def sync_game_achievements(user_id, game, achievements):
 
             db.session.add(user_achievement)
 
+            user_achievements_by_achievement_id[
+                achievement.id
+            ] = user_achievement
+
         else:
 
             user_achievement.unlocked = unlocked
 
         # ==========================================
-        # GUARDAR FECHA DE DESBLOQUEO
+        # FECHA DE DESBLOQUEO
         # ==========================================
 
         if unlocked and unlocked_timestamp:
@@ -474,16 +539,11 @@ def sync_game_achievements(user_id, game, achievements):
 
     total_achievements = len(achievements)
 
-    if total_achievements > 0:
-
-        percentage = (
-            unlocked_achievements /
-            total_achievements
-        ) * 100
-
-    else:
-
-        percentage = 0
+    percentage = (
+        (unlocked_achievements / total_achievements) * 100
+        if total_achievements > 0
+        else 0
+    )
 
     return (
         total_achievements,
@@ -534,21 +594,71 @@ def sync_steam():
             "error": "No Steam games found"
         }), 404
 
-    # los más jugados primero: el tope de logros se aplica a los que importan
+    # Más jugados primero
     games_list = sorted(
         games_list,
         key=lambda g: g.get("minutes", 0),
         reverse=True
     )
+
+    # ==========================================
+    # 2. OBTENER APPIDS
+    # ==========================================
+
+    appids = []
+
+    for steam_game in games_list:
+
+        game_data = map_steam_game(
+            steam_game
+        )
+
+        appid = game_data.get("appid")
+
+        if appid:
+            appids.append(appid)
+
+    # ==========================================
+    # 3. TRAER GAMES EXISTENTES DE UNA VEZ
+    # ==========================================
+
+    existing_games = db.session.execute(
+        db.select(Game).where(
+            Game.appid.in_(appids)
+        )
+    ).scalars().all()
+
+    games_by_appid = {
+        game.appid: game
+        for game in existing_games
+    }
+
+    # ==========================================
+    # 4. TRAER USER_GAMES DE UNA VEZ
+    # ==========================================
+
+    existing_user_games = db.session.execute(
+        db.select(UserGame).where(
+            UserGame.user_id == user_id
+        )
+    ).scalars().all()
+
+    user_games_by_game_id = {
+        user_game.game_id: user_game
+        for user_game in existing_user_games
+    }
+
     achievements_synced = 0
 
     # ==========================================
-    # 2. PROCESAR CADA JUEGO
+    # 5. PROCESAR JUEGOS
     # ==========================================
 
     for steam_game in games_list:
 
-        game_data = map_steam_game(steam_game)
+        game_data = map_steam_game(
+            steam_game
+        )
 
         appid = game_data.get("appid")
         name = game_data.get("name")
@@ -557,40 +667,49 @@ def sync_steam():
             continue
 
         # ==========================================
-        # 3. BUSCAR O CREAR GAME
+        # BUSCAR O CREAR GAME
         # ==========================================
 
-        game = db.session.execute(
-            db.select(Game).where(
-                Game.appid == appid
-            )
-        ).scalar_one_or_none()
+        game = games_by_appid.get(
+            appid
+        )
 
         if not game:
 
             game = Game(
                 appid=appid,
                 name=name,
-                img_icon_url=game_data.get("img_icon_url")
+                img_icon_url=game_data.get(
+                    "img_icon_url"
+                )
             )
 
             db.session.add(game)
+
+            # necesitamos game.id para UserGame
             db.session.flush()
 
+            games_by_appid[
+                appid
+            ] = game
+
         else:
+
             game.name = name
-            game.img_icon_url = game_data.get("img_icon_url")
 
-        # ==========================================
-        # 4. BUSCAR O CREAR USER_GAME
-        # ==========================================
-
-        user_game = db.session.execute(
-            db.select(UserGame).where(
-                UserGame.user_id == user_id,
-                UserGame.game_id == game.id
+            game.img_icon_url = (
+                game_data.get(
+                    "img_icon_url"
+                )
             )
-        ).scalar_one_or_none()
+
+        # ==========================================
+        # BUSCAR O CREAR USER_GAME
+        # ==========================================
+
+        user_game = user_games_by_game_id.get(
+            game.id
+        )
 
         if not user_game:
 
@@ -601,18 +720,30 @@ def sync_steam():
 
             db.session.add(user_game)
 
+            user_games_by_game_id[
+                game.id
+            ] = user_game
+
         # ==========================================
-        # 5. ACTUALIZAR TIEMPO JUGADO
+        # ACTUALIZAR TIEMPO JUGADO
         # ==========================================
 
-        user_game.playtime_forever = game_data.get(
-            "playtime_forever",
-            0
+        user_game.playtime_forever = (
+            game_data.get(
+                "playtime_forever",
+                0
+            )
         )
 
-        # solo pedimos logros a juegos con horas suficientes y hasta el tope
+        # ==========================================
+        # DECIDIR SI SINCRONIZAR LOGROS
+        # ==========================================
+
         if (
-            game_data.get("playtime_forever", 0) < ALMOST_COMPLETED_MIN_PLAYTIME
+            game_data.get(
+                "playtime_forever",
+                0
+            ) < ALMOST_COMPLETED_MIN_PLAYTIME
             or achievements_synced >= MAX_ACHIEVEMENT_SYNC
         ):
             continue
@@ -623,14 +754,15 @@ def sync_steam():
         # 6. OBTENER LOGROS DEL JUEGO
         # ==========================================
 
-        achievements, achievement_error = get_steam_achievements(
-            steam_id,
-            appid
+        achievements, achievement_error = (
+            get_steam_achievements(
+                steam_id,
+                appid
+            )
         )
 
         if achievement_error:
             continue
-
 
         # ==========================================
         # 7. GUARDAR / ACTUALIZAR LOGROS
@@ -648,14 +780,23 @@ def sync_steam():
                 achievements
             )
 
-            user_game.achievements_total = total_achievements
+            user_game.achievements_total = (
+                total_achievements
+            )
 
             user_game.achievements_unlocked = (
                 unlocked_achievements
             )
 
-            user_game.achievement_percentage = percentage
-            sync_global_achievement_percentages(game)
+            user_game.achievement_percentage = (
+                percentage
+            )
+
+            # OJO:
+            # esta función también puede ser pesada.
+            sync_global_achievement_percentages(
+                game
+            )
 
         else:
 
