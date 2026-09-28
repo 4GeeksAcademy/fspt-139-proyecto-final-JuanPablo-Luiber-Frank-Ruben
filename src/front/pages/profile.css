@@ -279,35 +279,6 @@
   text-overflow: ellipsis;
 }
 
-/* ============ FILTROS ============ */
-.sv-filter-group {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.sv-filter-btn {
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  padding: 0.5rem 1rem;
-  border-radius: 2px;
-  transition: all 0.15s;
-  cursor: pointer;
-}
-.sv-filter-btn:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
-.sv-filter-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
 /* ============ BARRA DE PROGRESO (Casi completados) ============ */
 .sv-progress {
   height: 8px;
