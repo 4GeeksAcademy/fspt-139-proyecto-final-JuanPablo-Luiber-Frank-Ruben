@@ -59,6 +59,17 @@ a {
   right: 1.2rem;
   z-index: 200;
 }
+.sv-theme-toggle .fa-sun {
+  color: #f5c518;
+}
+.sv-theme-toggle .fa-moon {
+  color: #4d8bff;
+}
+.sv-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 
 /* ============ AUTH (LOGIN / REGISTER) ============ */
 .sv-outline {

@@ -44,9 +44,18 @@ export const Navbar = () => {
 	return (
 		<nav className={`sv-navbar${scrolled ? " scrolled" : ""}`}>
 			<div className="container d-flex justify-content-between align-items-center">
-				<Link to={token ? "/profile" : "/login"} className="sv-logo">
-					<i className="fa-solid fa-gamepad"></i>TROPHY<span>HUNTER</span>
-				</Link>
+				<div className="sv-brand">
+					<Link to={token ? "/profile" : "/login"} className="sv-logo">
+						<i className="fa-solid fa-gamepad"></i>TROPHY<span>HUNTER</span>
+					</Link>
+					<button
+						className="sv-theme-toggle"
+						onClick={toggleTheme}
+						title={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+					>
+						<i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
+					</button>
+				</div>
 
 				<button
 					className="sv-navbar-toggler d-flex d-lg-none"
@@ -63,15 +72,10 @@ export const Navbar = () => {
 							<li><Link className={isActive("/profile")} to="/profile" onClick={closeMenu}>Perfil</Link></li>
 							<li><Link className={isActive("/games")} to="/games" onClick={closeMenu}>Mis juegos</Link></li>
 							<li><Link className={isActive("/achievements")} to="/achievements" onClick={closeMenu}>Logros</Link></li>
-							<li><Link className={isActive("#")} to="#" onClick={closeMenu}>Amigos</Link></li> {/* TODO: crear ruta /friends */}
 						</ul>
 					)}
 
 					<div className="sv-nav-actions">
-						<button className="sv-theme-toggle" onClick={toggleTheme} title="Cambiar tema">
-							<i className={`fa-solid ${theme === "light" ? "fa-moon" : "fa-sun"}`}></i>
-						</button>
-
 						{token ? (
 							<div className="sv-nav-user-area">
 								<Link to="/profile" className="sv-user-name-sm d-none d-sm-inline" onClick={closeMenu}>
