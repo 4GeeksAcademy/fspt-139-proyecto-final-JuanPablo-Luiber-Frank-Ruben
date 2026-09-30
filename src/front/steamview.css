@@ -295,12 +295,6 @@ flex: 1;
   align-items: center;
   gap: 0.6rem;
 }
-.sv-user-name-sm {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--text-dim);
-}
-.sv-user-name-sm:hover { color: var(--text); }
 
 .sv-btn-outline {
   border: 1px solid var(--border);

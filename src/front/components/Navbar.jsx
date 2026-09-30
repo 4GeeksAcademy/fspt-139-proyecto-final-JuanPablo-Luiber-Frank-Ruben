@@ -2,15 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import useTheme from "../hooks/useTheme";
 
-function getUserFromToken(token) {
-	try {
-		const payload = JSON.parse(atob(token.split(".")[1]));
-		return payload.nickname || payload.name || payload.email || null;
-	} catch {
-		return null;
-	}
-}
-
 export const Navbar = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -30,7 +21,6 @@ export const Navbar = () => {
 		return () => window.removeEventListener("scroll", onScroll);
 	}, []);
 
-	const userName = token ? getUserFromToken(token) : null;
 	const isActive = (path) => (location.pathname === path ? "active" : "");
 	const closeMenu = () => setMenuOpen(false);
 
@@ -78,9 +68,6 @@ export const Navbar = () => {
 					<div className="sv-nav-actions">
 						{token ? (
 							<div className="sv-nav-user-area">
-								<Link to="/profile" className="sv-user-name-sm d-none d-sm-inline" onClick={closeMenu}>
-									{userName || "Mi cuenta"}
-								</Link>
 								<button className="btn btn-sm sv-btn-outline" onClick={handleLogout}>
 									<i className="fa-solid fa-arrow-right-from-bracket"></i> <span className="d-lg-none d-xl-inline">Cerrar sesión</span>
 								</button>
